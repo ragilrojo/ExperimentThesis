@@ -1,0 +1,228 @@
+\documentclass[12pt,a4paper]{article}
+
+% Package yang diperlukan
+\usepackage[bahasa]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% Pengaturan margin: 4cm kiri, 3cm atas, 2.5cm kanan, 2.5cm bawah
+\geometry{
+    left=4cm,
+    top=3cm,
+    right=2.5cm,
+    bottom=2.5cm
+}
+
+% Pengaturan spasi 1.5
+\onehalfspacing
+
+% Pengaturan font Times New Roman (gunakan mathptmx atau times)
+\usepackage{mathptmx}
+
+% Pengaturan header dan footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\begin{document}
+
+% ==================== HALAMAN SAMPUL ====================
+\begin{titlepage}
+    \centering
+    
+    % Judul Proposal (gunakan huruf besar, tanpa singkatan)
+    {\Large \textbf{JUDUL PROPOSAL TESIS ANDA}\par}
+    
+    \vspace{2cm}
+    
+    % Logo Universitas (sesuaikan path gambar)
+    \includegraphics[width=5cm]{logo_unm.png}\par
+    
+    \vspace{1cm}
+    
+    {\Large \textbf{PROPOSAL TESIS}\par}
+    
+    \vspace{1cm}
+    
+    {\normalsize Diajukan sebagai salah satu syarat untuk memperoleh gelar\\
+    Magister Komputer (M.Kom)\par}
+    
+    \vspace{2cm}
+    
+    {\normalsize
+    \textbf{Nama Anda}\\
+    NIM: 12345678\par}
+    
+    \vspace{2cm}
+    
+    {\normalsize
+    \textbf{PROGRAM STUDI ILMU KOMPUTER (S2)}\\
+    \textbf{FAKULTAS TEKNOLOGI INFORMASI}\\
+    \textbf{UNIVERSITAS NUSA MANDIRI}\\
+    \textbf{JAKARTA}\\
+    \textbf{2024}\par}
+    
+\end{titlepage}
+
+% ==================== HALAMAN PENGESAHAN ====================
+\newpage
+\thispagestyle{empty}
+
+\begin{center}
+    {\Large \textbf{HALAMAN PENGESAHAN}\par}
+\end{center}
+
+\vspace{1cm}
+
+\noindent
+Proposal Tesis ini diajukan oleh:\\
+
+\noindent
+\begin{tabular}{ll}
+Nama & : Nama Anda \\
+NIM & : 12345678 \\
+Program Studi & : Ilmu Komputer \\
+Judul & : Judul Proposal Tesis Anda \\
+\end{tabular}
+
+\vspace{2cm}
+
+\noindent
+Telah disetujui oleh:
+
+\vspace{3cm}
+
+\noindent
+\begin{tabular}{p{7cm}p{7cm}}
+Pembimbing, & Jakarta, \underline{\hspace{3cm}} 2024\\
+& \\
+& \\
+& \\
+\underline{\hspace{6cm}} & \\
+Nama Dosen Pembimbing & \\
+\end{tabular}
+
+% ==================== BAB I PENDAHULUAN ====================
+\newpage
+\setcounter{page}{1}
+
+\section{PENDAHULUAN}
+
+\subsection{Latar Belakang}
+Tuliskan latar belakang penelitian Anda di sini. Jelaskan:
+\begin{itemize}
+    \item Persoalan-persoalan yang muncul dan dihadapi
+    \item Kesenjangan antara keadaan nyata dan keadaan ideal
+    \item Inti masalah yang harus diselesaikan
+    \item Rujukan pada penelitian sebelumnya dengan mencantumkan sumber
+    \item Makna penting mengapa penelitian ini harus dilaksanakan
+\end{itemize}
+
+Contoh: Perkembangan teknologi informasi saat ini telah membawa perubahan signifikan dalam berbagai aspek kehidupan \cite{contoh2023}.
+
+\subsection{Identifikasi Masalah}
+Tuliskan identifikasi masalah secara ringkas dan terfokus. Ini merupakan intisari dari latar belakang.
+
+Contoh format:
+\begin{enumerate}
+    \item Masalah pertama yang diidentifikasi
+    \item Masalah kedua yang diidentifikasi
+    \item Masalah ketiga yang diidentifikasi
+\end{enumerate}
+
+\subsection{Tujuan Penelitian}
+Tuliskan tujuan penelitian Anda. Ini memuat hal-hal yang akan dicapai setelah penelitian berakhir.
+
+Contoh:
+Tujuan dari penelitian ini adalah:
+\begin{enumerate}
+    \item Tujuan pertama
+    \item Tujuan kedua
+    \item Tujuan ketiga
+\end{enumerate}
+
+\subsection{Ruang Lingkup Penelitian}
+Tuliskan batasan penelitian Anda. Ini merupakan penegasan bagian masalah yang akan dipecahkan, termasuk asumsi-asumsi yang digunakan.
+
+Ruang lingkup penelitian ini meliputi:
+\begin{itemize}
+    \item Batasan pertama
+    \item Batasan kedua
+    \item Asumsi yang digunakan
+\end{itemize}
+
+\subsection{Sistematika Penulisan}
+Tuliskan sistematika penulisan proposal tesis Anda.
+
+\textbf{BAB I PENDAHULUAN}\\
+Bab ini berisi latar belakang, identifikasi masalah, tujuan penelitian, ruang lingkup penelitian, dan sistematika penulisan.
+
+\textbf{BAB II LANDASAN/KERANGKA PEMIKIRAN}\\
+Bab ini berisi kerangka teori dan tinjauan organisasi/obyek penelitian (opsional).
+
+\textbf{BAB III METODOLOGI PENELITIAN}\\
+Bab ini berisi metodologi yang akan digunakan dalam penelitian.
+
+% ==================== BAB II LANDASAN PEMIKIRAN ====================
+\newpage
+
+\section{LANDASAN/KERANGKA PEMIKIRAN}
+
+\subsection{Kerangka Teori}
+Tuliskan teori-teori yang relevan, lengkap, mutakhir, dan urut sesuai dengan permasalahan penelitian.
+
+\subsubsection{Teori Pertama}
+Jelaskan teori pertama yang mendukung penelitian Anda \cite{referensi2024}.
+
+\subsubsection{Teori Kedua}
+Jelaskan teori kedua yang relevan dengan penelitian.
+
+\subsection{Tinjauan Organisasi/Obyek Penelitian (Opsional)}
+Jika penelitian Anda melibatkan organisasi atau obyek tertentu, tuliskan profil dan uraiannya di sini.
+
+% ==================== BAB III METODOLOGI PENELITIAN ====================
+\newpage
+
+\section{METODOLOGI PENELITIAN}
+
+Pada bab ini, jelaskan secara bertahap dan terperinci tentang:
+\begin{itemize}
+    \item Langkah-langkah (metodologi) yang akan digunakan
+    \item Cara mencari dan mengumpulkan data
+    \item Metode analisis yang akan digunakan
+    \item Alat-alat, pendekatan, atau algoritma yang akan digunakan
+    \item Uraian model yang akan digunakan
+\end{itemize}
+
+Metodologi ini harus merujuk kepada tujuan penelitian yang ditulis pada Bab I.
+
+% Contoh menambahkan gambar metodologi
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{metodologi.png}
+    \caption{Kerangka Metodologi Penelitian}
+    \label{fig:metodologi}
+\end{figure}
+
+% ==================== DAFTAR REFERENSI ====================
+\newpage
+
+\begin{thebibliography}{99}
+
+\bibitem{contoh2023}
+Nama Penulis, ``Judul Artikel,'' \textit{Nama Jurnal}, vol. X, no. Y, pp. ZZ-ZZ, Tahun.
+
+\bibitem{referensi2024}
+Nama Penulis, \textit{Judul Buku}, Edisi, Penerbit, Kota, Tahun.
+
+% Tambahkan referensi lainnya di sini
+% Minimal 15 referensi ilmiah
+
+\end{thebibliography}
+
+\end{document}

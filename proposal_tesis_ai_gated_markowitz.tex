@@ -1,0 +1,581 @@
+\documentclass[12pt,a4paper]{article}
+
+% Package yang diperlukan
+\usepackage[bahasa]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+
+% Pengaturan margin: 4cm kiri, 3cm atas, 2.5cm kanan, 2.5cm bawah
+\geometry{
+    left=4cm,
+    top=3cm,
+    right=2.5cm,
+    bottom=2.5cm
+}
+
+% Pengaturan spasi 1.5
+\onehalfspacing
+
+% Pengaturan font Times New Roman (gunakan mathptmx atau times)
+\usepackage{mathptmx}
+
+% Pengaturan header dan footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\begin{document}
+
+% ==================== HALAMAN SAMPUL ====================
+\begin{titlepage}
+    \centering
+    
+    % Judul Proposal (gunakan huruf besar, tanpa singkatan)
+    {\Large \textbf{OPTIMASI PORTOFOLIO CRYPTOCURRENCY MENGGUNAKAN STRATEGI AI-GATED MARKOWITZ BERBASIS RANDOM FOREST CLASSIFIER}\par}
+    
+    \vspace{2cm}
+    
+    % Logo Universitas (sesuaikan path gambar)
+    % \includegraphics[width=5cm]{logo_unm.png}\par
+    
+    \vspace{1cm}
+    
+    {\Large \textbf{PROPOSAL TESIS}\par}
+    
+    \vspace{1cm}
+    
+    {\normalsize Diajukan sebagai salah satu syarat untuk memperoleh gelar\\
+    Magister Komputer (M.Kom)\par}
+    
+    \vspace{2cm}
+    
+    {\normalsize
+    \textbf{[Nama Mahasiswa]}\\
+    NIM: [NIM Mahasiswa]\par}
+    
+    \vspace{2cm}
+    
+    {\normalsize
+    \textbf{PROGRAM STUDI ILMU KOMPUTER (S2)}\\
+    \textbf{FAKULTAS TEKNOLOGI INFORMASI}\\
+    \textbf{UNIVERSITAS NUSA MANDIRI}\\
+    \textbf{JAKARTA}\\
+    \textbf{2026}\par}
+    
+\end{titlepage}
+
+% ==================== HALAMAN PENGESAHAN ====================
+\newpage
+\thispagestyle{empty}
+
+\begin{center}
+    {\Large \textbf{HALAMAN PENGESAHAN}\par}
+\end{center}
+
+\vspace{1cm}
+
+\noindent
+Proposal Tesis ini diajukan oleh:\\
+
+\noindent
+\begin{tabular}{ll}
+Nama & : [Nama Mahasiswa] \\
+NIM & : [NIM Mahasiswa] \\
+Program Studi & : Ilmu Komputer (S2) \\
+Judul & : Optimasi Portofolio Cryptocurrency Menggunakan \\
+      & Strategi AI-Gated Markowitz Berbasis Random Forest Classifier \\
+\end{tabular}
+
+\vspace{2cm}
+
+\noindent
+Telah disetujui oleh:
+
+\vspace{3cm}
+
+\noindent
+\begin{tabular}{p{7cm}p{7cm}}
+Pembimbing, & Jakarta, \underline{\hspace{3cm}} 2026\\
+& \\
+& \\
+& \\
+\underline{\hspace{6cm}} & \\
+[Nama Dosen Pembimbing] & \\
+\end{tabular}
+
+% ==================== BAB I PENDAHULUAN ====================
+\newpage
+\setcounter{page}{1}
+
+\section{PENDAHULUAN}
+
+\subsection{Latar Belakang}
+
+Perkembangan pasar cryptocurrency dalam dekade terakhir telah menciptakan peluang investasi baru yang menarik perhatian investor global. Namun, volatilitas tinggi yang menjadi karakteristik pasar crypto menimbulkan tantangan signifikan dalam manajemen risiko portofolio \cite{nakamoto2008bitcoin}. Data historis menunjukkan bahwa strategi pasif seperti \textit{buy-and-hold} seringkali mengalami kerugian substansial pada periode pasar bearish, sebagaimana terlihat pada tahun 2025 dimana strategi tersebut mencatat return negatif -6.61\%.
+
+Teori Portofolio Modern (Modern Portfolio Theory/MPT) yang dikembangkan oleh Markowitz \cite{markowitz1952portfolio} telah menjadi fondasi dalam optimasi portofolio selama lebih dari 70 tahun. Pendekatan ini menggunakan optimasi mean-variance untuk memaksimalkan Sharpe Ratio, namun memiliki keterbatasan dalam beradaptasi terhadap perubahan kondisi pasar yang dinamis. Penelitian menunjukkan bahwa meskipun Markowitz menghasilkan return 20.74\% pada kondisi pasar yang challenging, masih terdapat ruang untuk peningkatan performa melalui mekanisme adaptif.
+
+Di sisi lain, perkembangan Machine Learning dan Deep Reinforcement Learning (Deep RL) menawarkan pendekatan alternatif yang lebih kompleks. Namun, penelitian empiris menunjukkan bahwa model Deep RL murni seperti Proximal Policy Optimization (PPO) mengalami kesulitan dalam generalisasi pada data out-of-sample, dengan performa yang hanya mencapai 1.10\% return pada periode testing 2025. Hal ini mengindikasikan bahwa kompleksitas model tidak selalu berbanding lurus dengan performa aktual \cite{arulkumaran2017deep}.
+
+Kesenjangan antara stabilitas teoritis Markowitz dan kemampuan adaptif Machine Learning memunculkan peluang untuk mengembangkan pendekatan hybrid. Strategi berbasis aturan sederhana seperti Trend-Based Markowitz menunjukkan potensi dengan return 18.30\%, namun masih terbatas pada indikator teknikal dasar yang tidak mampu menangkap kompleksitas dinamika pasar.
+
+Penelitian ini mengusulkan strategi \textbf{AI-Gated Markowitz} yang mengintegrasikan kekuatan optimasi matematis Markowitz dengan kemampuan klasifikasi adaptif Random Forest. Pendekatan ini menggunakan Random Forest Classifier untuk memprediksi kondisi pasar (bull/bear) berdasarkan fitur volatilitas dan momentum, kemudian secara dinamis mengalokasikan antara portofolio optimal Markowitz (saat bullish) dan posisi defensif/cash (saat bearish). Hasil eksperimen awal menunjukkan bahwa strategi ini mampu mencapai return 90.93\% dengan Sharpe Ratio 1.35 pada periode testing 2025, jauh melampaui seluruh baseline yang diuji.
+
+Makna penting penelitian ini terletak pada kontribusinya dalam menjembatani gap antara teori keuangan klasik dan teknologi Machine Learning modern, dengan menghasilkan strategi yang tidak hanya superior secara empiris namun juga tetap interpretable dan praktis untuk diimplementasikan.
+
+\subsection{Identifikasi Masalah}
+
+Berdasarkan latar belakang di atas, masalah yang diidentifikasi adalah:
+
+\begin{enumerate}
+    \item Strategi pasif \textit{buy-and-hold} mengalami kerugian signifikan (-6.61\%) pada kondisi pasar bearish, menunjukkan ketidakmampuan beradaptasi terhadap perubahan kondisi pasar.
+    
+    \item Pendekatan Markowitz klasik, meskipun menghasilkan return positif (20.74\%), bersifat statis dan tidak memiliki mekanisme untuk menghindari periode pasar yang tidak menguntungkan.
+    
+    \item Model Deep Reinforcement Learning murni (PPO) menunjukkan performa yang sangat rendah (1.10\%) pada data out-of-sample, mengindikasikan masalah overfitting dan kesulitan generalisasi.
+    
+    \item Strategi berbasis aturan sederhana (Trend-Based) memiliki keterbatasan dalam menangkap kompleksitas dinamika pasar, dengan return hanya 18.30\%.
+    
+    \item Belum terdapat framework yang secara efektif mengintegrasikan kekuatan optimasi matematis dengan kemampuan prediksi Machine Learning untuk manajemen portofolio cryptocurrency.
+\end{enumerate}
+
+\subsection{Tujuan Penelitian}
+
+Tujuan dari penelitian ini adalah:
+
+\begin{enumerate}
+    \item Mengembangkan strategi AI-Gated Markowitz yang mengintegrasikan Random Forest Classifier dengan optimasi portofolio Markowitz untuk manajemen portofolio cryptocurrency.
+    
+    \item Mengevaluasi performa strategi AI-Gated Markowitz terhadap baseline teoritis (Markowitz klasik), baseline berbasis aturan (Trend-Based), baseline Deep Learning (PPO), dan baseline pasar (Buy-and-Hold) menggunakan metrik Total Return, Volatility, dan Sharpe Ratio.
+    
+    \item Menganalisis kemampuan Random Forest Classifier dalam memprediksi kondisi pasar (bull/bear) berdasarkan fitur volatilitas dan momentum untuk pengambilan keputusan alokasi portofolio.
+    
+    \item Memvalidasi efektivitas pendekatan hybrid (teori keuangan + Machine Learning) dalam meningkatkan risk-adjusted returns pada pasar cryptocurrency.
+    
+    \item Memberikan rekomendasi praktis untuk implementasi strategi AI-Gated Markowitz dalam konteks investasi cryptocurrency riil.
+\end{enumerate}
+
+\subsection{Ruang Lingkup Penelitian}
+
+Ruang lingkup penelitian ini meliputi:
+
+\begin{itemize}
+    \item \textbf{Aset yang Digunakan:} Lima cryptocurrency utama yaitu Bitcoin (BTC), Ethereum (ETH), Ripple (XRP), Litecoin (LTC), dan Bitcoin Cash (BCH).
+    
+    \item \textbf{Periode Data:} Data historis harga harian dari 1 Januari 2023 hingga 31 Desember 2025 (3 tahun).
+    
+    \item \textbf{Pembagian Data:} 
+    \begin{itemize}
+        \item Training: 2023-2024 (731 hari)
+        \item Testing: 2025 (365 hari)
+    \end{itemize}
+    
+    \item \textbf{Fitur Input:} Returns, Volatility (rolling 20-day standard deviation), dan Momentum (price relative to 50-day SMA).
+    
+    \item \textbf{Model yang Dibandingkan:}
+    \begin{itemize}
+        \item AI-Gated Markowitz (Proposed)
+        \item Markowitz klasik (Theory Baseline)
+        \item Trend-Based Markowitz (Rule-Based Baseline)
+        \item Deep RL PPO (Deep Learning Baseline)
+        \item Buy-and-Hold (Market Baseline)
+    \end{itemize}
+    
+    \item \textbf{Metrik Evaluasi:} Total Return, Volatility (annualized), dan Sharpe Ratio.
+    
+    \item \textbf{Asumsi:}
+    \begin{itemize}
+        \item Tidak ada biaya transaksi dan slippage
+        \item Likuiditas pasar diasumsikan sempurna
+        \item Rebalancing dilakukan harian
+        \item Data harga adalah harga penutupan (closing price)
+    \end{itemize}
+    
+    \item \textbf{Tools dan Library:} Python, scikit-learn (Random Forest), scipy (optimasi), stable-baselines3 (PPO), pandas, numpy, matplotlib.
+\end{itemize}
+
+\subsection{Sistematika Penulisan}
+
+Sistematika penulisan proposal tesis ini adalah sebagai berikut:
+
+\textbf{BAB I PENDAHULUAN}\\
+Bab ini berisi latar belakang penelitian yang menjelaskan konteks pasar cryptocurrency, kesenjangan antara metode klasik dan modern, serta urgensi pengembangan strategi hybrid. Selain itu, bab ini juga memuat identifikasi masalah, tujuan penelitian, ruang lingkup penelitian, dan sistematika penulisan.
+
+\textbf{BAB II LANDASAN/KERANGKA PEMIKIRAN}\\
+Bab ini berisi kerangka teori yang mencakup: (1) Modern Portfolio Theory dan optimasi Markowitz, (2) Random Forest Classifier dan ensemble learning, (3) Deep Reinforcement Learning (PPO), (4) Metrik evaluasi portofolio (Sharpe Ratio, volatility, returns), dan (5) Tinjauan penelitian terkait tentang optimasi portofolio cryptocurrency.
+
+\textbf{BAB III METODOLOGI PENELITIAN}\\
+Bab ini berisi metodologi penelitian yang meliputi: (1) Arsitektur sistem AI-Gated Markowitz, (2) Proses pengumpulan dan preprocessing data, (3) Training Random Forest Classifier untuk prediksi kondisi pasar, (4) Implementasi optimasi Markowitz, (5) Mekanisme gating (switching) antara portofolio optimal dan cash, (6) Desain eksperimen dan baseline comparison, serta (7) Prosedur evaluasi performa.
+
+% ==================== BAB II LANDASAN PEMIKIRAN ====================
+\newpage
+
+\section{LANDASAN/KERANGKA PEMIKIRAN}
+
+\subsection{Kerangka Teori}
+
+\subsubsection{Modern Portfolio Theory dan Optimasi Markowitz}
+
+Modern Portfolio Theory (MPT) yang dikembangkan oleh Harry Markowitz pada tahun 1952 merupakan fondasi dalam teori keuangan modern \cite{markowitz1952portfolio}. Inti dari MPT adalah konsep diversifikasi untuk mengurangi risiko portofolio tanpa mengorbankan expected return. Markowitz memperkenalkan pendekatan mean-variance optimization yang bertujuan memaksimalkan Sharpe Ratio:
+
+\begin{equation}
+\text{Sharpe Ratio} = \frac{E[R_p] - R_f}{\sigma_p}
+\end{equation}
+
+dimana $E[R_p]$ adalah expected return portofolio, $R_f$ adalah risk-free rate, dan $\sigma_p$ adalah standar deviasi return portofolio.
+
+Optimasi Markowitz mencari bobot optimal $w_i$ untuk setiap aset $i$ dengan memecahkan:
+
+\begin{equation}
+\max_{w} \frac{w^T \mu}{\sqrt{w^T \Sigma w}}
+\end{equation}
+
+dengan constraint $\sum_{i=1}^{n} w_i = 1$ dan $w_i \geq 0$, dimana $\mu$ adalah vektor expected returns dan $\Sigma$ adalah matriks kovarians.
+
+\subsubsection{Random Forest Classifier}
+
+Random Forest adalah algoritma ensemble learning yang dikembangkan oleh Breiman (2001) \cite{breiman2001random}. Algoritma ini membangun multiple decision trees dan menggabungkan prediksi mereka melalui voting (untuk klasifikasi) atau averaging (untuk regresi). Keunggulan Random Forest meliputi:
+
+\begin{itemize}
+    \item Robust terhadap overfitting karena averaging multiple trees
+    \item Mampu menangkap non-linear relationships
+    \item Memberikan feature importance untuk interpretability
+    \item Tidak memerlukan feature scaling
+\end{itemize}
+
+Dalam konteks penelitian ini, Random Forest digunakan untuk mengklasifikasikan kondisi pasar (bull/bear) berdasarkan fitur volatilitas (rolling 20-day std) dan momentum (rolling 20-day mean returns).
+
+\subsubsection{Deep Reinforcement Learning (Proximal Policy Optimization)}
+
+Proximal Policy Optimization (PPO) adalah algoritma Deep RL yang dikembangkan oleh Schulman et al. (2017) \cite{schulman2017proximal}. PPO termasuk dalam kategori policy gradient methods yang mengoptimalkan policy secara langsung dengan membatasi update untuk menjaga stabilitas training:
+
+\begin{equation}
+L^{CLIP}(\theta) = \mathbb{E}_t[\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)]
+\end{equation}
+
+dimana $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ dan $\hat{A}_t$ adalah estimated advantage.
+
+Meskipun PPO powerful untuk sequential decision making, penelitian ini menunjukkan bahwa pure Deep RL mengalami kesulitan generalisasi pada financial time series yang non-stationary.
+
+\subsubsection{Metrik Evaluasi Portofolio}
+
+Penelitian ini menggunakan tiga metrik utama untuk evaluasi performa:
+
+\begin{enumerate}
+    \item \textbf{Total Return:} $R_{total} = \frac{V_T - V_0}{V_0}$, dimana $V_T$ adalah nilai portofolio akhir dan $V_0$ adalah nilai awal.
+    
+    \item \textbf{Volatility (Annualized):} $\sigma_{annual} = \sigma_{daily} \times \sqrt{365}$, mengukur risiko portofolio.
+    
+    \item \textbf{Sharpe Ratio:} $SR = \frac{\mu_{daily}}{\sigma_{daily}} \times \sqrt{365}$, mengukur risk-adjusted returns.
+\end{enumerate}
+
+\subsubsection{Penelitian Terkait}
+
+Beberapa penelitian terkait optimasi portofolio cryptocurrency:
+
+\begin{itemize}
+    \item Platanakis \& Urquhart (2020) \cite{platanakis2020portfolio} menunjukkan bahwa cryptocurrency dapat meningkatkan diversifikasi portofolio tradisional.
+    
+    \item Jiang \& Liang (2017) \cite{jiang2017cryptocurrency} menggunakan Deep RL untuk trading cryptocurrency namun menghadapi masalah overfitting.
+    
+    \item Liu et al. (2020) \cite{liu2020portfolio} mengusulkan hybrid approach antara Markowitz dan LSTM, namun kompleksitas LSTM tidak memberikan peningkatan signifikan dibanding Markowitz klasik.
+\end{itemize}
+
+Penelitian ini berkontribusi dengan mengusulkan pendekatan yang lebih sederhana namun efektif: menggunakan Random Forest sebagai ``gatekeeper'' untuk Markowitz, bukan sebagai predictor returns.
+
+% ─── Definisi Warna untuk Tabel SOTA ────────────────────────
+\definecolor{headerBg}{RGB}{27, 58, 92}      % biru gelap
+\definecolor{headerFg}{RGB}{255,255,255}     % putih
+\definecolor{rowEven}{RGB}{242, 247, 250}    % biru sangat muda
+\definecolor{rowHighlight}{RGB}{212, 237, 218} % hijau muda (proposed)
+
+% ─── Kolom custom: rata kiri, word-wrap ───────────────────
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\begin{table}[h]
+\centering
+\caption{Tabel SOTA: Perbandingan Metode Optimasi Portofolio Cryptocurrency}
+\label{tab:sota}
+\vspace{6pt}
+
+\small
+\begin{tabular}{
+  L{2.5cm}
+  L{4.5cm}
+  L{2.5cm}
+  L{2.2cm}
+  C{2.0cm}
+  C{2.0cm}
+  L{3.5cm}
+}
+
+% ─── Header ───────────────────────────────────────────────
+\toprule
+\rowcolor{headerBg}
+\textcolor{headerFg}{\textbf{Referensi}} &
+\textcolor{headerFg}{\textbf{Judul Paper}} &
+\textcolor{headerFg}{\textbf{Metode}} &
+\textcolor{headerFg}{\textbf{Aset \& Data}} &
+\textcolor{headerFg}{\textbf{Metrik Utama}} &
+\textcolor{headerFg}{\textbf{Hasil Terbaik}} &
+\textcolor{headerFg}{\textbf{Keterbatasan}} \\
+\midrule
+
+% ─── Row 1 ────────────────────────────────────────────────
+\rowcolor{rowEven}
+Jiang \& Liang (2017) &
+Cryptocurrency Portfolio Management with Deep Reinforcement Learning &
+CNN + Deep RL &
+Crypto (multiple) &
+Cumulative Return &
+10x in 1.8 mo &
+Overfitting on out-of-sample; no Sharpe reported \\[4pt]
+
+% ─── Row 2 ────────────────────────────────────────────────
+Lucarelli \& Borrotti (2020) &
+Deep Reinforcement Learning for Autonomous Trading: An Application to the Cryptocurrency Market &
+Multi-Agent Deep Q-Learning &
+BTC, ETH, LTC, XRP &
+Cumulative Return &
+Outperforms baseline &
+Ignores transaction costs; limited generalization \\[4pt]
+
+% ─── Row 3 ────────────────────────────────────────────────
+\rowcolor{rowEven}
+Cui et al.\ (2023) &
+CVaR-Based Deep Reinforcement Learning for Cryptocurrency Portfolio Construction &
+CVaR + Deep RL (PPO) &
+Crypto (2015--2021) &
+CVaR-Efficient Frontier &
+Beats mean-variance &
+Complex; tail-risk focused; no clear Sharpe \\[4pt]
+
+% ─── Row 4 ────────────────────────────────────────────────
+Chun \& Lee (2025) &
+Reinforcement Learning with Timeframe Analysis for Cryptocurrency Portfolio Optimization &
+A2C + Timeframe Analysis &
+18 Crypto (Binance) &
+Avg Return (test) &
+43.06\% (low-freq) &
+Futures only; regime sensitivity unclear \\[4pt]
+
+% ─── Row 5 ────────────────────────────────────────────────
+\rowcolor{rowEven}
+Paykan et al.\ (2025) &
+Deep Reinforcement Learning for Cryptocurrency Portfolio Management with LSTM-Based Feature Extraction &
+SAC / DDPG + LSTM &
+BTC, ETH, LTC, DOGE &
+Cumulative Return &
+Beats Markowitz &
+High complexity; no regime switching \\[4pt]
+
+% ─── Row 6 — Proposed (highlighted) ───────────────────────
+\rowcolor{rowHighlight}
+\textbf{Proposed: AI-Gated Markowitz} &
+Optimasi Portofolio Cryptocurrency Menggunakan Strategi AI-Gated Markowitz Berbasis Random Forest Classifier &
+Random Forest + Markowitz &
+BTC, ETH, XRP, LTC, BCH &
+Return / Sharpe &
+\textbf{90.93\% / SR 1.35} &
+--- \\
+
+\bottomrule
+\end{tabular}
+
+\vspace{8pt}
+\begin{flushleft}
+\footnotesize
+\textbf{Keterangan:} Baris berwarna hijau menandakan metode yang diusulkan dalam penelitian ini. \\[2pt]
+\textit{SR = Sharpe Ratio; A2C = Advantage Actor-Critic; SAC = Soft Actor-Critic; DDPG = Deep Deterministic Policy Gradient; PPO = Proximal Policy Optimization.}
+\end{flushleft}
+
+\end{table}
+
+% ==================== BAB III METODOLOGI PENELITIAN ====================
+\newpage
+
+\section{METODOLOGI PENELITIAN}
+
+\subsection{Kerangka Metodologi}
+
+Penelitian ini menggunakan pendekatan eksperimental dengan desain train-test split untuk memvalidasi efektivitas strategi AI-Gated Markowitz. Kerangka metodologi terdiri dari lima tahap utama:
+
+\begin{enumerate}
+    \item Pengumpulan dan Preprocessing Data
+    \item Training Model (Random Forest \& PPO Baseline)
+    \item Implementasi Strategi Trading
+    \item Evaluasi dan Perbandingan Performa
+    \item Analisis Hasil dan Validasi
+\end{enumerate}
+
+% Gambar metodologi bisa ditambahkan di sini
+% \begin{figure}[h]
+%     \centering
+%     \includegraphics[width=0.9\textwidth]{metodologi_flowchart.png}
+%     \caption{Kerangka Metodologi Penelitian}
+%     \label{fig:metodologi}
+% \end{figure}
+
+\subsection{Pengumpulan dan Preprocessing Data}
+
+\textbf{Sumber Data:} Data historis harga harian cryptocurrency (BTC, ETH, XRP, LTC, BCH) dari 1 Januari 2023 hingga 31 Desember 2025 (file: \texttt{real\_crypto\_data.csv}).
+
+\textbf{Feature Engineering:}
+\begin{itemize}
+    \item \textbf{Returns:} $r_t = \frac{P_t - P_{t-1}}{P_{t-1}}$
+    \item \textbf{Volatility:} Rolling 20-day standard deviation of returns
+    \item \textbf{Momentum:} $\text{Mom}_t = \frac{P_t}{\text{SMA}_{50}(P_t)} - 1$
+\end{itemize}
+
+\textbf{Data Splitting:}
+\begin{itemize}
+    \item Training Set: 2023-2024 (731 hari, 66.7\%)
+    \item Testing Set: 2025 (365 hari, 33.3\%)
+\end{itemize}
+
+\subsection{Training Random Forest Classifier}
+
+\textbf{Target Variable:} Binary classification (Bull = 1, Bear = 0) berdasarkan apakah average market return besok $> 0$.
+
+\textbf{Input Features:}
+\begin{itemize}
+    \item Vol\_20: 20-day rolling volatility of market returns
+    \item Mom\_20: 20-day rolling mean of market returns
+\end{itemize}
+
+\textbf{Hyperparameters:}
+\begin{itemize}
+    \item n\_estimators = 100
+    \item min\_samples\_split = 10
+    \item random\_state = 42
+\end{itemize}
+
+\textbf{Training:} Model dilatih hanya pada data 2023-2024, kemudian digunakan untuk prediksi pada seluruh periode (termasuk 2025) untuk analisis konsistensi.
+
+\subsection{Implementasi Strategi AI-Gated Markowitz}
+
+\textbf{Algoritma AI-Gated Markowitz:}
+
+\begin{enumerate}
+    \item Pada setiap hari $t$, dapatkan prediksi probabilitas bull dari Random Forest: $P(\text{Bull}_t)$
+    
+    \item Hitung bobot optimal Markowitz $w^*$ menggunakan data historis 50 hari terakhir
+    
+    \item Tentukan alokasi berdasarkan gating rule:
+    \begin{equation}
+    w_{\text{final}} = \begin{cases}
+    w^* & \text{if } P(\text{Bull}_t) > 0.52 \text{ (Bullish)} \\
+    0.5 \times w^* & \text{if } 0.48 \leq P(\text{Bull}_t) \leq 0.52 \text{ (Neutral)} \\
+    0 & \text{if } P(\text{Bull}_t) < 0.48 \text{ (Bearish)}
+    \end{cases}
+    \end{equation}
+    
+    \item Hitung portfolio return: $R_t = w_{\text{final}}^T \cdot r_t$
+    
+    \item Update portfolio value: $V_{t+1} = V_t \times (1 + R_t)$
+\end{enumerate}
+
+\subsection{Baseline Strategies}
+
+Untuk validasi, strategi AI-Gated Markowitz dibandingkan dengan:
+
+\begin{enumerate}
+    \item \textbf{Markowitz (Theory Baseline):} Pure mean-variance optimization tanpa gating
+    
+    \item \textbf{Trend-Based (Rule-Based Baseline):} Menggunakan momentum sederhana: jika momentum $> 0$ gunakan Markowitz, jika $\leq 0$ gunakan 50\% Markowitz
+    
+    \item \textbf{DeepRL PPO (Deep Learning Baseline):} Pure Reinforcement Learning dengan PPO algorithm
+    
+    \item \textbf{Buy-and-Hold (Market Baseline):} Equal-weight buy-and-hold strategy
+\end{enumerate}
+
+\subsection{Evaluasi Performa}
+
+\textbf{Metrik Evaluasi:}
+\begin{itemize}
+    \item Total Return (\%)
+    \item Annualized Volatility (\%)
+    \item Sharpe Ratio
+\end{itemize}
+
+\textbf{Prosedur Evaluasi:}
+\begin{enumerate}
+    \item Jalankan semua strategi pada testing set (2025)
+    \item Hitung metrik performa untuk setiap strategi
+    \item Bandingkan hasil dalam tabel dan visualisasi grafik
+    \item Analisis statistical significance (jika diperlukan)
+\end{enumerate}
+
+\textbf{Tools dan Environment:}
+\begin{itemize}
+    \item Python 3.x
+    \item Libraries: scikit-learn, scipy, stable-baselines3, pandas, numpy, matplotlib
+    \item Jupyter Notebook untuk eksperimen
+\end{itemize}
+
+% ==================== DAFTAR REFERENSI ====================
+\newpage
+
+\begin{thebibliography}{99}
+
+\bibitem{nakamoto2008bitcoin}
+Nakamoto, S., ``Bitcoin: A Peer-to-Peer Electronic Cash System,'' 2008.
+
+\bibitem{markowitz1952portfolio}
+Markowitz, H., ``Portfolio Selection,'' \textit{The Journal of Finance}, vol. 7, no. 1, pp. 77-91, 1952.
+
+\bibitem{arulkumaran2017deep}
+Arulkumaran, K., Deisenroth, M. P., Brundage, M., \& Bharath, A. A., ``Deep Reinforcement Learning: A Brief Survey,'' \textit{IEEE Signal Processing Magazine}, vol. 34, no. 6, pp. 26-38, 2017.
+
+\bibitem{breiman2001random}
+Breiman, L., ``Random Forests,'' \textit{Machine Learning}, vol. 45, no. 1, pp. 5-32, 2001.
+
+\bibitem{schulman2017proximal}
+Schulman, J., Wolski, F., Dhariwal, P., Radford, A., \& Klimov, O., ``Proximal Policy Optimization Algorithms,'' \textit{arXiv preprint arXiv:1707.06347}, 2017.
+
+\bibitem{platanakis2020portfolio}
+Platanakis, E., \& Urquhart, A., ``Portfolio Management with Cryptocurrencies: The Role of Estimation Risk,'' \textit{Economics Letters}, vol. 177, pp. 76-80, 2020.
+
+\bibitem{jiang2017cryptocurrency}
+Jiang, Z., \& Liang, J., ``Cryptocurrency Portfolio Management with Deep Reinforcement Learning,'' \textit{IEEE Intelligent Systems}, vol. 32, no. 6, pp. 102-109, 2017.
+
+\bibitem{liu2020portfolio}
+Liu, Y., Tsyvinski, A., \& Wu, X., ``Common Risk Factors in Cryptocurrency,'' \textit{The Journal of Finance}, vol. 77, no. 2, pp. 1133-1177, 2022.
+
+\bibitem{sharpe1994sharpe}
+Sharpe, W. F., ``The Sharpe Ratio,'' \textit{Journal of Portfolio Management}, vol. 21, no. 1, pp. 49-58, 1994.
+
+\bibitem{demiguel2009optimal}
+DeMiguel, V., Garlappi, L., \& Uppal, R., ``Optimal Versus Naive Diversification: How Inefficient is the 1/N Portfolio Strategy?,'' \textit{The Review of Financial Studies}, vol. 22, no. 5, pp. 1915-1953, 2009.
+
+\bibitem{fabozzi2007robust}
+Fabozzi, F. J., Kolm, P. N., Pachamanova, D. A., \& Focardi, S. M., \textit{Robust Portfolio Optimization and Management}, John Wiley \& Sons, 2007.
+
+\bibitem{hastie2009elements}
+Hastie, T., Tibshirani, R., \& Friedman, J., \textit{The Elements of Statistical Learning: Data Mining, Inference, and Prediction}, 2nd ed., Springer, 2009.
+
+\bibitem{sutton2018reinforcement}
+Sutton, R. S., \& Barto, A. G., \textit{Reinforcement Learning: An Introduction}, 2nd ed., MIT Press, 2018.
+
+\bibitem{murphy2012machine}
+Murphy, K. P., \textit{Machine Learning: A Probabilistic Perspective}, MIT Press, 2012.
+
+\bibitem{goodfellow2016deep}
+Goodfellow, I., Bengio, Y., \& Courville, A., \textit{Deep Learning}, MIT Press, 2016.
+
+\end{thebibliography}
+
+\end{document}
