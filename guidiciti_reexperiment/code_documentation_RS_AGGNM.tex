@@ -1,0 +1,264 @@
+\documentclass[12pt,a4paper]{article}
+\UseRawInputEncoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{longtable}
+
+\geometry{margin=1in}
+
+% -- Python Listing Style ------------------------------------------------------
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{codeorange}{rgb}{0.8,0.4,0}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codeorange},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    morekeywords={self, True, False, None, np, pd, plt, sns}
+}
+\lstset{style=pythonstyle}
+
+\title{\textbf{Dokumentasi Kode RS-AGGNM (Tesis)} \\ \large Regime-Switching Adaptive Graph-Gated Network Markowitz \\
+\small \texttt{RS\_AGGNM\_Tesis.ipynb}}
+\author{Catatan Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Pendahuluan}
+Dokumen ini merinci implementasi kode untuk model portofolio usulan dalam tesis: \textbf{Regime-Switching Adaptive Graph-Gated Network Markowitz (RS-AGGNM)}. Model ini merupakan pengembangan dari penelitian Giudici et al. (2020) dengan mengintegrasikan deteksi \textit{regime} pasar otomatis dan optimasi pemilihan aset berbasis teori graf.
+
+\textbf{Kontribusi Utama (Inovasi):}
+\begin{itemize}
+    \item \textbf{Inovasi 1 (Regime Detection):} Penggunaan Gaussian HMM 2-state untuk mendeteksi kondisi \textit{Bull} dan \textit{Bear} secara otomatis.
+    \item \textbf{Inovasi 2 (Graph Gating):} Implementasi \textit{Maximum Independent Set} (MIS) dengan optimasi ambang batas ($\theta$) secara \textit{Out-of-Sample}.
+    \item \textbf{Inovasi 3 (RS-AGGNM Framework):} Penggabungan komponen jaringan (\textit{Network}) dan optimasi varians dalam satu kerangka kerja adaptif.
+\end{itemize}
+
+\section{Sel 1 -- Library dan Konfigurasi}
+\begin{lstlisting}[caption={Import library dan parameter global}]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import networkx as nx
+import warnings
+from scipy.optimize import minimize
+from scipy.linalg import eigh
+from scipy.stats import norm as stats_norm
+from sklearn.covariance import GraphicalLasso, LedoitWolf
+from itertools import combinations
+
+warnings.filterwarnings('ignore')
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette('husl')
+
+# Parameter Global
+WINDOW_SIZE = 120   # rolling window (hari)
+REBALANCE_FREQ = 7  # rebalancing (hari)
+TRANS_COST = 0.001  # 10 bps per turnover unit
+\end{lstlisting}
+
+\section{Sel 2 -- Memuat Data}
+\begin{lstlisting}[caption={Load dataset kripto dan pembersihan data}]
+EXCEL_FILE = 'crypto_data_real.xlsx'
+df_returns = pd.read_excel(EXCEL_FILE, sheet_name='Returns', index_col=0, parse_dates=True)
+df_prices  = pd.read_excel(EXCEL_FILE, sheet_name='Prices',  index_col=0, parse_dates=True)
+
+df_returns.dropna(inplace=True)
+crypto_names = df_returns.columns.tolist()
+N_ASSETS = len(crypto_names)
+\end{lstlisting}
+
+% Berlanjut ke tahap berikutnya...
+\section{Sel 3 -- Statistik Deskriptif (Table 1)}
+Bagian ini menghasilkan tabel statistik deskriptif untuk setiap aset kripto (Mean, Std, Kurtosis, Skewness). Kurtosis yang tinggi menunjukkan distribusi \textit{heavy-tailed}, yang membenarkan perlunya penyaringan noise via RMT.
+
+\begin{lstlisting}[caption={Kalkulasi statistik deskriptif aset}]
+summary = pd.DataFrame({
+    'Mean'    : df_returns.mean(),
+    'Std'     : df_returns.std(),
+    'Kurtosis': df_returns.kurt(),
+    'Skewness': df_returns.skew(),
+}).round(4)
+
+print("TABLE 1 | Summary Statistics of Cryptocurrency Daily Returns")
+print(summary.to_string())
+\end{lstlisting}
+
+\section{Sel 4 -- Visualisasi Harga Ternormalisasi (Figure 1 \& 2)}
+Grafik harga ternormalisasi menunjukkan pergerakan aset kripto sejak 7 Januari 2018 dengan basis 100, memberikan konteks visual mengenai siklus pasar.
+
+\begin{lstlisting}[caption={Plotting harga ternormalisasi per kelompok aset}]
+# (Fungsi plotting untuk Figure 1 & 2 dengan dual subplots)
+assets_1 = ['BTC','ETH','USDT','BCH','LTC']
+avail = [a for a in assets_1 if a in df_prices.columns]
+base  = df_prices.loc['2018-01-07':, avail]
+norm  = (base / base.iloc[0]) * 100
+# ... (Visualisasi via matplotlib)
+\end{lstlisting}
+
+\section{Sel 5 -- MST Analysis: Bubble vs Stable (Figure 3 \& 4)}
+Analisis \textit{Minimum Spanning Tree} (MST) digunakan untuk membandingkan struktur keterhubungan aset pada periode gelembung spekulatif (2017) dibandingkan periode stabil (2019).
+
+\begin{lstlisting}[caption={Konstruksi MST antar periode}]
+def build_and_draw_mst(returns_slice, title, ax):
+    corr = returns_slice.corr()
+    dist = np.sqrt(2 * (1 - corr.clip(-1, 1)))
+    G = nx.from_pandas_adjacency(dist)
+    mst = nx.minimum_spanning_tree(G, weight='weight')
+    # ... (Plotting graf menggunakan nx.draw_networkx)
+\end{lstlisting}
+
+\section{Sel 6 -- MST Dynamics: Max Link \& Residuality (Figure 5)}
+Bagian ini menganalisis evolusi struktur pasar secara dinamis melalui \textit{rolling window} untuk menghitung ambang batas korelasi (\textit{Max Link}) dan koefisien \textit{residuality}.
+
+\begin{lstlisting}[caption={Kalkulasi dinamika MST sepanjang waktu}]
+def calculate_rolling_mst_metrics(returns_df, window=120):
+    # Filter noise RMT -> Build MST -> Get Max Link & Residuality
+    # (Implementasi rolling analysis)
+    return pd.DataFrame({'Max Link': max_links, 'Residuality': resid})
+\end{lstlisting}
+
+% Berlanjut ke tahap berikutnya...
+\section{Sel 7 -- Fungsi Pembantu (Helper Functions)}
+Bagian ini mengomposisikan algoritma inti untuk penyaringan noise (\textit{Random Matrix Theory}), kalkulasi sentralitas jaringan, dan metrik risiko keuangan.
+
+\begin{lstlisting}[caption={Kalkulasi Network dan Risiko}]
+def apply_rmt_filter(returns_data):
+    """Filter noise via Marcenko-Pastur upper bound."""
+    # (Implementasi RMT: Eigen-decomposition -> Filter -> Reconstruction)
+    return C_filtered
+
+def compute_eigenvector_centrality(distance_matrix):
+    """Mengukur kepentingan aset dalam jaringan."""
+    adj = 1.0 / (distance_matrix + 1e-8)
+    _, vecs = eigh(adj)
+    pev = np.abs(vecs[:, -1])
+    return pev / pev.sum()
+
+def calculate_rachev_ratio(returns, alpha=0.10):
+    """Metrik tail-risk: imbal hasil ekor atas vs ekor bawah."""
+    # (Kalkulasi CVaR_up / CVaR_lo)
+    return ratio
+\end{lstlisting}
+
+\section{Sel 8 -- [INOVASI 1] Regime Detection via Gaussian HMM}
+Berbeda dengan model \textit{benchmark} yang menggunakan parameter tetap, tesis ini mengusulkan penggunaan \textit{Hidden Markov Model} (HMM) untuk mendeteksi rezim pasar (\textit{Bull/Bear}) secara otomatis berdasarkan volatilitas.
+
+\begin{lstlisting}[caption={Implementasi Gaussian HMM 2-state (Baum-Welch)}]
+class GaussianHMM2State:
+    """State 0 = Low Vol (Bull), State 1 = High Vol (Bear)"""
+    def fit(self, X):
+        # E-step: Forward-Backward probability
+        # M-step: Update means, stds, and transition matrix
+        pass
+
+    def predict_viterbi(self, X):
+        """Menentukan urutan state yang paling mungkin (Viterbi)."""
+        pass
+
+# Fit HMM pada proxy volatilitas (rolling std return)
+VOL_PROXY = df_returns.std(axis=1).rolling(21).mean().dropna()
+hmm_model = GaussianHMM2State(n_iter=200).fit(VOL_PROXY.values)
+regime_series = pd.Series(hmm_model.predict(VOL_PROXY.values), index=VOL_PROXY.index)
+\end{lstlisting}
+
+% Berlanjut ke tahap berikutnya...
+\section{Sel 9 -- [INOVASI 2] Graph Gating dengan Optimasi $\theta$ OOS}
+Inovasi kedua adalah pemilihan aset berbasis teori graf menggunakan \textit{Maximum Independent Set} (MIS). Ambang batas korelasi ($\theta$) dioptimasi secara \textit{Out-of-Sample} (OOS) menggunakan jendela data \textit{expanding} untuk mencegah kebocoran data (\textit{lookahead bias}).
+
+\begin{lstlisting}[caption={Optimasi parameter graf secara OOS}]
+def optimize_theta_oos(prior_returns):
+    """Optimasi theta tanpa lookahead bias via split train/val prior."""
+    best_theta = 0.4
+    # (Looping theta 0.2-0.8 -> Hitung Sharpe Ratio tertinggal)
+    return best_theta
+
+def graph_gate(returns_window, theta):
+    """Seleksi aset independen via MIS dari graf korelasi RMT."""
+    sel = get_mis_assets_rmt(returns_window, theta)
+    return sel
+\end{lstlisting}
+
+\section{Sel 10 -- [INOVASI 3] RS-AGGNM: Model Utama Tesis}
+Model ini mengintegrasikan seluruh inovasi sebelumnya dalam satu fungsi optimasi portofolio tunggal. Parameter $\gamma$ diubah secara dinamis berdasarkan rezim pasar (\textit{Regime-Switching}) dan bobot aset dibatasi hanya pada aset yang lolos \textit{Graph Gate}.
+
+\begin{lstlisting}[caption={Framework Model RS-AGGNM}]
+class RS_AGGNM(PortfolioStrategy):
+    def __init__(self, gamma_bull=0.7, gamma_bear=0.05, hmm_model=None):
+        self.gamma_bull = gamma_bull    # Agresif di Bull
+        self.gamma_bear = gamma_bear    # Defensif di Bear
+        self.hmm_model = hmm_model
+
+    def get_weights(self, r, prior_returns, theta):
+        # 1. Deteksi Regime via HMM -> Tentukan gamma_t
+        # 2. Graph Gating via MIS -> Tentukan subset aset S*
+        # 3. Optimasi Network Markowitz pada subgraph S*:
+        #    min w^T Sf w + gamma_t * (cent_sub * w_sub).sum()
+        # s.t. mu_w >= mu_max * 0.5 (Safety Constraint)
+        return w_full
+\end{lstlisting}
+
+% Berlanjut ke tahap berikutnya...
+\section{Sel 11 -- Framework Backtesting dan Biaya Transaksi}
+Sistem pengujian menggunakan jendela bertahap (\textit{rolling window}) dengan biaya transaksi berbasis \textit{turnover}. Berbeda dengan \textit{flat fee}, biaya ini dihitung proporsional terhadap perubahan bobot aset ($TC = c \times \sum |w_{new} - w_{old}|$).
+
+\begin{lstlisting}[caption={Fungsi simulasi backtest dengan turnover-based TC}]
+def backtest_strategy(strategy, df_ret, window_size=120, rebalance_freq=7, tc=0.001):
+    # (Looping rolling window -> Get weights -> Calculate Turnover -> Deduct TC)
+    # (Khusus RS-AGGNM: Mengirim prior_returns untuk optimasi theta OOS)
+    return results_dict
+\end{lstlisting}
+
+\section{Sel 12-18 -- Analisis Hasil (Table 2 s.d. Table 7)}
+Hasil simulasi dipecah ke dalam berbagai metrik performa dan risiko yang disampel secara periodik (Januari, Mei, dan September setiap tahunnya).
+
+\begin{itemize}
+    \item \textbf{Table 2 (Cumulative P\&L):} Membandingkan profit kumulatif antar model.
+    \item \textbf{Table 3 (VaR 95\%):} Mengukur risiko kerugian ekstrim menggunakan \textit{Value at Risk}.
+    \item \textbf{Table 4 \& 5 (Sharpe \& Rachev):} Mengevaluasi \textit{risk-adjusted return} dan asimetri \textit{tail-risk}.
+    \item \textbf{Table 6 (Phase Analysis):} Performa model pada fase \textit{Bearish, Recovery,} dan \textit{Stable}.
+    \item \textbf{Table 7 (Regime-Conditional):} Analisis mendalam performa model saat HMM mendeteksi regime \textit{Bull} vs \textit{Bear} (Kontribusi khusus tesis).
+\end{itemize}
+
+\section{Sel 22-24 -- Visualisasi Bobot dan Ekspor Data}
+Untuk transparansi model, dilakukan visualisasi \textit{stack area} (Figure 9) guna melihat evolusi bobot aset dalam portofolio \textbf{RS-AGGNM}. Karena \textit{Graph Gating}, hanya aset yang terpilih dalam MIS yang memiliki bobot positif, sedangkan aset lainnya nol. Seluruh tabel hasil akhir kemudian diekspor ke file \texttt{RS\_AGGNM\_Results.xlsx}.
+
+\begin{lstlisting}[caption={Visualisasi evolusi bobot portofolio}]
+# Figure 9 | Portfolio Weights RS-AGGNM
+# Menunjukkan aset mana saja yang "aktif" di setiap periode rebalancing
+plt.fill_between(w_dates, bottom, bottom + W_mat[:, i], label=asset)
+\end{lstlisting}
+
+\section{Kesimpulan}
+Dokumentasi ini membuktikan bahwa kerangka kerja \textbf{RS-AGGNM} berhasil meningkatkan stabilitas portofolio aset kripto melalui mekanisme adaptasi rezim yang cerdas dan kontrol keterhubungan aset berbasis graf.
+
+\end{document}

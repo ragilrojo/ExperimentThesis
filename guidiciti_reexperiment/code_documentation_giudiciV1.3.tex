@@ -1,0 +1,563 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{longtable}
+
+\geometry{margin=1in}
+
+% ── Python Listing Style ──────────────────────────────────────────────────────
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{codeorange}{rgb}{0.8,0.4,0}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codeorange},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    morekeywords={self, True, False, None, np, pd, plt, sns}
+}
+\lstset{style=pythonstyle}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\title{\textbf{Dokumentasi Kode} \\ \large Replikasi Eksperimen Giudici et al. (2020) \\
+\small \texttt{strategy\_comparison.ipynb}}
+\author{Catatan Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{Pendahuluan}
+%=============================================================================
+Dokumen ini merinci implementasi kode untuk membandingkan strategi \textit{Network Markowitz} terhadap berbagai baseline dalam ekosistem aset kripto. Eksperimen ini merupakan replikasi dari penelitian Giudici et al. (2020) berjudul \textit{"Network Models to Improve Automated Cryptocurrency Portfolio Management"}.
+
+Strategi yang dibandingkan meliputi:
+\begin{enumerate}
+    \item \textbf{Equally Weighted (EW)}: Portofolio naif ($1/N$).
+    \item \textbf{Classical Markowitz (CM)}: Optimasi Mean-Variance tradisional.
+    \item \textbf{Glasso Markowitz (GM)}: Markowitz dengan regularisasi \textit{Graphical Lasso}.
+    \item \textbf{Network Markowitz (NW)}: Integrasi \textit{Random Matrix Theory} (RMT) dan \textit{Minimum Spanning Tree} (MST).
+    \item \textbf{Graph Diversification}: Strategi diversifikasi berbasis teori graf menggunakan \textit{Maximum Independent Set} (MIS).
+\end{enumerate}
+
+%=============================================================================
+\section{Sel 1 -- Persiapan Library}
+%=============================================================================
+\begin{lstlisting}[caption={Import libraries dan konfigurasi visualisasi}]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import networkx as nx
+from scipy.optimize import minimize
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.linalg import eigh
+from sklearn.covariance import GraphicalLassoCV
+import warnings
+warnings.filterwarnings('ignore')
+
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette("husl")
+
+print("Libraries imported successfully!")
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 2 -- Memuat Data}
+%=============================================================================
+Memuat data return dan harga dari file Excel. Fokus utama adalah pada dataset return harian untuk 10 aset kripto utama dalam periode 14 September 2017 hingga 17 Oktober 2019.
+
+\begin{lstlisting}[caption={Load dataset kripto}]
+# Load data
+excel_file = 'crypto_data_real.xlsx'
+df_returns = pd.read_excel(excel_file, sheet_name='Returns', index_col=0)
+df_prices = pd.read_excel(excel_file, sheet_name='Prices', index_col=0)
+
+crypto_names = df_returns.columns.tolist()
+n_assets = len(crypto_names)
+
+print(f"Data loaded: {df_returns.shape[0]} days, {n_assets} assets")
+print(f"Period: {df_returns.index[0]} to {df_returns.index[-1]}")
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 3 -- Statistik Ringkasan (Summary Statistics)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi statistik deskriptif aset}]
+# Create summary statistics table
+summary_stats = pd.DataFrame({
+    'Mean': df_returns.mean(),
+    'Std': df_returns.std(),
+    'Kurtosis': df_returns.kurt(),
+    'Skewness': df_returns.skew()
+})
+print("TABLE 1 | Summary statistics.")
+print(summary_stats.round(4))
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 4 -- Visualisasi Harga Ternormalisasi (Figure 1 \& 2)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Dua set plot harga ternormalisasi}]
+# --- Figure 1: BTC, ETH, USDT, BCH, LTC ---
+assets_1  = ['BTC', 'ETH', 'USDT', 'BCH', 'LTC']
+df_norm_1 = (df_prices.loc['2018-01-07':, assets_1] / df_prices.loc['2018-01-07', assets_1]) * 100
+colors_1  = ['black', 'red', 'green', 'blue', 'cyan']
+
+plt.figure(figsize=(12, 5))
+for i, col in enumerate(df_norm_1.columns):
+    plt.plot(df_norm_1.index, df_norm_1[col], label=col, color=colors_1[i])
+plt.title('Figure 1 | Normalized Price Series I (BTC, ETH, USDT, BCH, LTC)')
+plt.ylabel('Normalized Price (base=100)')
+plt.legend(); plt.tight_layout(); plt.show()
+
+# --- Figure 2: XRP, BNB, EOS, XLM, TRX ---
+assets_2  = ['XRP', 'BNB', 'EOS', 'XLM', 'TRX']
+df_norm_2 = (df_prices.loc['2018-01-07':, assets_2] / df_prices.loc['2018-01-07', assets_2]) * 100
+colors_2  = ['magenta', 'gold', 'lightgrey', 'black', 'red']
+
+plt.figure(figsize=(12, 5))
+for i, col in enumerate(df_norm_2.columns):
+    plt.plot(df_norm_2.index, df_norm_2[col], label=col, color=colors_2[i])
+plt.title('Figure 2 | Normalized Price Series II (XRP, BNB, EOS, XLM, TRX)')
+plt.ylabel('Normalized Price (base=100)')
+plt.legend(); plt.tight_layout(); plt.show()
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 5 -- Visualisasi Minimum Spanning Tree (Figure 3 \& 4)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Konstruksi dan Plot MST}]
+# Filter periode Speculative Bubble
+df_bubble = df_returns.loc['2017-09-14':'2018-01-31']
+
+# Hitung Matriks Jarak (Distance Matrix)
+corr_bubble = df_bubble.corr()
+dist_bubble = np.sqrt(2 * (1 - corr_bubble))
+
+# Bangun Graf MST menggunakan NetworkX
+G = nx.from_pandas_adjacency(dist_bubble)
+mst_bubble = nx.minimum_spanning_tree(G, weight='weight')
+
+# Plotting MST
+plt.figure(figsize=(10, 8))
+pos = nx.spring_layout(mst_bubble, seed=42)
+nx.draw(mst_bubble, pos, with_labels=True, node_color='orange',
+        node_size=1500, edge_color='black', linewidths=1.5, font_size=10, font_weight='bold')
+plt.title('Figure 3 | MST September 2017 - January 2018', fontsize=12)
+plt.show()
+
+# --- Figure 4 | MST June 2019 - October 2019 ---
+df_stable = df_returns.loc['2019-06-01':'2019-10-17']
+corr_stable = df_stable.corr()
+dist_stable = np.sqrt(2 * (1 - corr_stable))
+
+G2 = nx.from_pandas_adjacency(dist_stable)
+mst_stable = nx.minimum_spanning_tree(G2, weight='weight')
+
+plt.figure(figsize=(10, 8))
+pos2 = nx.spring_layout(mst_stable, seed=42)
+nx.draw(mst_stable, pos2, with_labels=True, node_color='orange',
+        node_size=1500, edge_color='black', linewidths=1.5, font_size=10, font_weight='bold')
+plt.title('Figure 4 | MST June 2019 - October 2019', fontsize=12)
+plt.show()
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 6 -- Fungsi Pembantu (Helper Functions)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Algoritma Network dan Metrik Risiko}]
+def apply_rmt_filter(returns_data):
+    """Filter noise dari matriks korelasi menggunakan Random Matrix Theory."""
+    if isinstance(returns_data, pd.DataFrame):
+        data = returns_data.values
+    else:
+        data = returns_data
+    T, N = data.shape
+    Q    = T / N
+    C    = np.corrcoef(data.T)
+
+    eigenvalues, eigenvectors = eigh(C)
+    eigenvalues  = eigenvalues[::-1]
+    eigenvectors = eigenvectors[:, ::-1]
+
+    lambda_plus      = 1 + (1/Q) + 2*np.sqrt(1/Q)
+    significant_mask = eigenvalues > lambda_plus
+    Lambda_filtered  = np.diag(np.where(significant_mask, eigenvalues, 0))
+    C_filtered       = eigenvectors @ Lambda_filtered @ eigenvectors.T
+    return C_filtered
+
+def build_mst(correlation_matrix):
+    distance_matrix = np.sqrt(2 - 2*correlation_matrix)
+    np.fill_diagonal(distance_matrix, 0)
+    return distance_matrix
+
+def compute_eigenvector_centrality(distance_matrix):
+    adjacency = 1 / (distance_matrix + 1e-8)
+    np.fill_diagonal(adjacency, 0)
+    eigenvalues, eigenvectors = eigh(adjacency)
+    principal_eigenvector = np.abs(eigenvectors[:, -1])
+    centrality = principal_eigenvector / principal_eigenvector.sum()
+    return centrality
+
+def calculate_var(returns, confidence=0.95):
+    return np.percentile(returns, (1-confidence)*100)
+
+def calculate_rachev_ratio(returns, alpha=0.10):
+    threshold_upper = np.percentile(returns, (1-alpha)*100)
+    threshold_lower = np.percentile(returns, alpha*100)
+    cvar_upper = returns[returns >= threshold_upper].mean()
+    cvar_lower = abs(returns[returns <= threshold_lower].mean())
+    return cvar_upper / cvar_lower if cvar_lower > 0 else 0
+
+def calculate_max_drawdown(cumulative_returns):
+    running_max = np.maximum.accumulate(cumulative_returns)
+    drawdown = (cumulative_returns - running_max) / running_max
+    return drawdown.min()
+
+def get_assets_graph_diversify(returns_window, corr_threshold=0.4):
+    """Mencari aset untuk diversifikasi menggunakan Maximum Independent Set (MIS)."""
+    corr_mat = returns_window.corr()
+    G = nx.Graph()
+    assets = list(returns_window.mean().sort_values(ascending=False).index)
+    G.add_nodes_from(assets)
+    for i, a1 in enumerate(assets):
+        for a2 in assets[i+1:]:
+            if abs(corr_mat.loc[a1, a2]) > corr_threshold:
+                G.add_edge(a1, a2)
+    return list(nx.approximation.maximum_independent_set(G))
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 7 -- Implementasi Strategi Portofolio}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kelas-kelas strategi portofolio}]
+class PortfolioStrategy:
+    def __init__(self, name):
+        self.name = name
+        self.weights_history = []
+        self.returns_history = []
+    def get_weights(self, returns_data): raise NotImplementedError
+
+class EquallyWeighted(PortfolioStrategy):
+    def get_weights(self, returns_data):
+        n = returns_data.shape[1]; return np.ones(n) / n
+
+class ClassicalMarkowitz(PortfolioStrategy):
+    def get_weights(self, returns_data):
+        n_assets = returns_data.shape[1]
+        mu       = returns_data.mean().values
+        S        = returns_data.cov().values
+        objective   = lambda w: w @ S @ w
+        constraints = [
+            {'type': 'eq',   'fun': lambda w: np.sum(w) - 1},
+            {'type': 'ineq', 'fun': lambda w: w @ mu - mu.mean()}
+        ]
+        res = minimize(objective, np.ones(n_assets) / n_assets,
+                       method='SLSQP', bounds=[(0, 1)] * n_assets,
+                       constraints=constraints)
+        return res.x if res.success else np.ones(n_assets) / n_assets
+
+class NetworkMarkowitz(PortfolioStrategy):
+    def __init__(self, name="Network Markowitz", gamma=0):
+        super().__init__(name); self.gamma = gamma
+    def get_weights(self, returns_data):
+        n_assets = returns_data.shape[1]
+        mu       = returns_data.mean().values; sig = returns_data.std().values
+        Cf = apply_rmt_filter(returns_data)
+        dist = build_mst(Cf); cent = compute_eigenvector_centrality(dist)
+        Sf = np.outer(sig, sig) * Cf
+        objective   = lambda w: w @ Sf @ w + self.gamma * np.sum(cent * w)
+        constraints = [
+            {'type': 'eq',   'fun': lambda w: np.sum(w) - 1},
+            {'type': 'ineq', 'fun': lambda w: w @ mu - mu.mean()}
+        ]
+        res = minimize(objective, np.ones(n_assets) / n_assets,
+                       method='SLSQP', bounds=[(0, 1)] * n_assets,
+                       constraints=constraints)
+        return res.x if res.success else np.ones(n_assets) / n_assets
+
+class AdaptiveGraphPortfolio(PortfolioStrategy):
+    """AGGP v1.2 (Fair V9): Low-risk profile dengan gamma_max = 0.5."""
+    def __init__(self, name="AGGP (Fair V9)", sensitivity=2.5, gamma_max=0.5):
+        super().__init__(name)
+        self.sensitivity = sensitivity
+        self.gamma_max = gamma_max
+
+    def get_weights(self, r):
+        n = r.shape[1]; mu = r.mean().values; sig = r.std().values
+        try:
+            glasso = GraphicalLassoCV(cv=5); glasso.fit(r.values)
+            Sf = glasso.covariance_
+            v = np.sqrt(np.diag(Sf)); inv_sig = np.diag(1.0 / (v + 1e-8))
+            Cf = inv_sig @ Sf @ inv_sig
+        except:
+            Cf = apply_rmt_filter(r); Sf = np.outer(sig, sig) * Cf
+
+        adj = (np.abs(Cf) > 0.5).astype(int); G = nx.from_numpy_array(adj)
+        density = nx.density(G)
+        gamma_t = np.clip(density * self.sensitivity, 0.1, self.gamma_max)
+        dist = build_mst(Cf); cent = compute_eigenvector_centrality(dist)
+        w_net = 1.0 / (cent + 1e-6); w_net /= w_net.sum()
+        res_mko = minimize(lambda w: w @ Sf @ w, np.ones(n)/n, method='SLSQP',
+                           bounds=[(0, 1)] * n,
+                           constraints=({'type': 'eq', 'fun': lambda x: np.sum(x) - 1}))
+        return (1 - gamma_t) * res_mko.x + gamma_t * w_net
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 8 -- Framework Backtesting}
+%=============================================================================
+
+\begin{lstlisting}[caption={Fungsi simulasi backtest}]
+def backtest_strategy(strategy, df_returns, window_size=120,
+                      rebalance_freq=7, transaction_cost=0.001):
+    portfolio_returns = []; dates = []
+    for i in range(window_size, len(df_returns), rebalance_freq):
+        train = df_returns.iloc[i-window_size:i]
+        w = strategy.get_weights(train)
+        test_end = min(i + rebalance_freq, len(df_returns))
+        test_data = df_returns.iloc[i:test_end]
+        for j in range(len(test_data)):
+            daily_ret = np.dot(w, test_data.iloc[j].values)
+            if j == 0 and len(portfolio_returns) > 0:
+                daily_ret -= transaction_cost
+            portfolio_returns.append(daily_ret)
+            dates.append(test_data.index[j])
+    res_df = pd.DataFrame({'date': dates, 'return': portfolio_returns})
+    res_df['cumulative_return'] = (1 + res_df['return']).cumprod()
+    return {'strategy': strategy.name, 'returns': np.array(portfolio_returns),
+            'cumulative_returns': res_df['cumulative_return'].values,
+            'results_df': res_df}
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 10 -- Analisis Performa Periodik (Table 2)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi Profit/Loss Kumulatif Periodik (Jan, Mei, Sep)}]
+target_dates = ['2018-01-31', '2018-05-31', '2018-09-30',
+                '2019-01-31', '2019-05-31', '2019-09-30']
+table2_rows = []
+for strat_name, res in results.items():
+    df_res = res['results_df'].set_index('date')
+    row = {'Strategy': strat_name}
+    for td in target_dates:
+        idx = df_res.index.searchsorted(pd.Timestamp(td))
+        idx = min(idx, len(df_res) - 1)
+        cum_ret = (df_res['cumulative_return'].iloc[idx] - 1) * 100
+        row[td] = round(cum_ret, 2)
+    table2_rows.append(row)
+table2 = pd.DataFrame(table2_rows)
+\end{lstlisting}
+
+\begin{table}[h!]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{\textbf{TABLE 2 | Cumulative Profits and Losses (\%).} Nilai kumulatif profit dan loss dari setiap strategi portofolio, disampling pada titik Jan, Mei, dan Sep setiap tahunnya.}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        \textbf{Strategy} & \textbf{Jan-2018} & \textbf{May-2018} & \textbf{Sep-2018} & \textbf{Jan-2019} & \textbf{May-2019} & \textbf{Sep-2019} \\
+        \midrule
+        EW                          & $-35.53$ & $-58.96$ & $-77.02$ & $-89.67$ & $-77.88$ & $-88.82$ \\
+        CM                          & $-34.32$ & $-57.88$ & $-59.66$ & $-68.22$ & $-55.67$ & $-62.16$ \\
+        GM                          & $-33.86$ & $-60.11$ & $-61.90$ & $-73.12$ & $-62.49$ & $-67.53$ \\
+        NW (gamma=0)                & $-41.59$ & $-62.30$ & $-63.81$ & $-71.79$ & $-61.83$ & $-68.05$ \\
+        NW (gamma=0.005)            & $-41.62$ & $-61.76$ & $-64.22$ & $-71.33$ & $-62.41$ & $-68.75$ \\
+        NW (gamma=0.025)            & $-44.13$ & $-64.87$ & $-66.29$ & $-66.72$ & $-57.08$ & $-66.33$ \\
+        NW (gamma=0.05)             & $-44.80$ & $-63.44$ & $-64.60$ & $-65.06$ & $-55.14$ & $-61.98$ \\
+        NW (gamma=0.15)             & $-44.65$ & $-56.79$ & $-58.18$ & $-58.72$ & $-46.94$ & $-54.22$ \\
+        NW (gamma=0.7)              & $-40.13$ & $-52.75$ & $-54.21$ & $-54.80$ & $-41.90$ & $-48.76$ \\
+        NW (gamma=1.0)              & $-39.09$ & $-51.94$ & $-53.57$ & $-54.17$ & $-41.10$ & $-48.05$ \\
+        Graph Divers. (theta=0.4)   & $-38.42$ & $-58.05$ & $-65.09$ & $-73.24$ & $-50.42$ & $-70.57$ \\
+        Graph Divers. (theta=0.5)   & $-36.23$ & $-58.05$ & $-72.37$ & $-78.83$ & $-60.70$ & $-73.38$ \\
+        RMT GD (theta=0.4)          & $-41.76$ & $-64.97$ & $-68.06$ & $-77.77$ & $-66.23$ & $-74.73$ \\
+        Dynamic Graph Divers. (ML)  & $-38.05$ & $-59.55$ & $-81.00$ & $-89.44$ & $-81.26$ & $-91.22$ \\
+        \textbf{AGGP (Optimized)}   & $\mathbf{-6.94}$ & $\mathbf{-12.94}$ & $\mathbf{-20.94}$ & $\mathbf{-46.34}$ & $\mathbf{-28.34}$ & $\mathbf{-36.22}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Sel 12 -- Analisis Risiko Periodik (Table 3)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi VaR 95\% Periodik}]
+# Menghitung VaR untuk jendela 4 bulan terakhir di setiap titik sampling
+v = abs(calculate_var(returns_segment, 0.95)) * 100
+\end{lstlisting}
+
+\begin{table}[h!]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{\textbf{TABLE 3 | VaR 95\% (4-month window, scaled $\times$100).} Nilai \textit{Value at Risk} pada tingkat kepercayaan 95\% untuk setiap strategi, dikalikan faktor skala 100.}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        \textbf{Strategy} & \textbf{Jan-2018} & \textbf{May-2018} & \textbf{Sep-2018} & \textbf{Jan-2019} & \textbf{May-2019} & \textbf{Sep-2019} \\
+        \midrule
+        EW                          & 13.7904 & 9.5511 & 6.5477 & 9.4876 & 3.6840 & 8.2085 \\
+        CM                          & 12.8261 & 5.8008 & 0.9993 & 1.7255 & 1.7011 & 3.8309 \\
+        GM                          & 13.4648 & 5.9287 & 1.1856 & 2.4277 & 1.8379 & 4.2622 \\
+        NW (gamma=0)                & 12.4709 & 5.6166 & 1.1500 & 1.8397 & 1.5141 & 4.0012 \\
+        NW (gamma=0.005)            & 12.4241 & 5.6147 & 0.8306 & 1.6875 & 1.4901 & 3.4683 \\
+        NW (gamma=0.025)            & 12.4356 & 5.9057 & 0.7120 & 0.9561 & 1.2534 & 3.1919 \\
+        NW (gamma=0.05)             & 12.1764 & 5.6022 & 0.7120 & 0.9561 & 1.2534 & 3.0559 \\
+        NW (gamma=0.15)             & 11.6335 & 5.6183 & 0.7120 & 0.9561 & 1.2827 & 3.1919 \\
+        NW (gamma=0.7)              & 10.4548 & 5.6183 & 0.7120 & 0.9561 & 1.2827 & 3.0550 \\
+        NW (gamma=1.0)              & 10.3486 & 5.6183 & 0.7120 & 0.9561 & 1.2827 & 3.0550 \\
+        Graph Divers. (theta=0.4)   & 13.0552 & 9.4936 & 3.6543 & 5.8437 & 2.5881 & 5.1891 \\
+        Graph Divers. (theta=0.5)   & 13.8643 & 9.4907 & 4.6072 & 5.8437 & 3.0033 & 5.7190 \\
+        RMT GD (theta=0.4)          & 12.9205 & 6.1278 & 2.8843 & 3.1716 & 1.9709 & 5.1444 \\
+        Dynamic Graph Divers. (ML)  & 13.0745 & 8.1169 & 5.9009 & 7.0780 & 3.0913 & 5.5783 \\
+        \textbf{AGGP (Optimized)}   & \textbf{2.2782}  & \textbf{1.3386}  & \textbf{1.6989}  & \textbf{2.7062}  & \textbf{1.8032}  & \textbf{1.7460}  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Sel 13 -- Analisis Risk-Adjusted Return (Table 4)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi Sharpe Ratio Periodik}]
+# Sharpe Ratio = Mean Return / Std Dev Return (jendela 4 bulan)
+sr = np.mean(returns_segment) / np.std(returns_segment)
+\end{lstlisting}
+
+\begin{table}[h!]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{\textbf{TABLE 4 | Sharpe Ratio (4-month window).} Nilai \textit{Sharpe Ratio} untuk setiap strategi portofolio pada jendela 4 bulan.}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        \textbf{Strategy} & \textbf{Jan-2018} & \textbf{May-2018} & \textbf{Sep-2018} & \textbf{Jan-2019} & \textbf{May-2019} & \textbf{Sep-2019} \\
+        \midrule
+        EW                          & $-0.2532$ & $-0.0425$ & $-0.0986$ & $-0.1270$ & $0.2016$  & $-0.1298$ \\
+        CM                          & $-0.2508$ & $-0.0984$ & $-0.0577$ & $-0.1500$ & $0.1904$  & $-0.0598$ \\
+        GM                          & $-0.2355$ & $-0.1032$ & $-0.0537$ & $-0.1873$ & $0.1775$  & $-0.0526$ \\
+        NW (gamma=0)                & $-0.3442$ & $-0.1053$ & $-0.0523$ & $-0.1514$ & $0.1851$  & $-0.0694$ \\
+        NW (gamma=0.005)            & $-0.3452$ & $-0.1012$ & $-0.1186$ & $-0.1474$ & $0.1691$  & $-0.0730$ \\
+        NW (gamma=0.025)            & $-0.3860$ & $-0.1095$ & $-0.0710$ & $-0.0152$ & $0.1575$  & $-0.1023$ \\
+        NW (gamma=0.05)             & $-0.4039$ & $-0.0948$ & $-0.0563$ & $-0.0152$ & $0.1560$  & $-0.0672$ \\
+        NW (gamma=0.15)             & $-0.4061$ & $-0.0473$ & $-0.0562$ & $-0.0152$ & $0.1567$  & $-0.0588$ \\
+        NW (gamma=0.7)              & $-0.3945$ & $-0.0450$ & $-0.0549$ & $-0.0152$ & $0.1567$  & $-0.0498$ \\
+        NW (gamma=1.0)              & $-0.3849$ & $-0.0450$ & $-0.0632$ & $-0.0152$ & $0.1567$  & $-0.0498$ \\
+        Graph Divers. (theta=0.4)   & $-0.3018$ & $-0.0342$ & $-0.0477$ & $-0.0435$ & $0.2178$  & $-0.1443$ \\
+        Graph Divers. (theta=0.5)   & $-0.2550$ & $-0.0393$ & $-0.1044$ & $-0.0435$ & $0.2086$  & $-0.1208$ \\
+        RMT GD (theta=0.4)          & $-0.3430$ & $-0.0848$ & $-0.0427$ & $-0.1440$ & $0.2155$  & $-0.0478$ \\
+        Dynamic Graph Divers. (ML)  & $-0.2896$ & $-0.0446$ & $-0.1711$ & $-0.1110$ & $0.1739$  & $-0.1698$ \\
+        \textbf{AGGP (Optimized)}   & $\mathbf{-0.3303}$ & $\mathbf{-0.0552}$ & $\mathbf{-0.0794}$ & $\mathbf{-0.1797}$ & $\mathbf{0.1635}$ & $\mathbf{-0.0902}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Sel 14 -- Analisis Tail-Risk (Table 5)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi Rachev Ratio Periodik}]
+# Rachev Ratio = CVaR_upper (10%) / CVaR_lower (10%)
+rr = calculate_rachev_ratio(returns_segment, alpha=0.10)
+\end{lstlisting}
+
+\begin{table}[h!]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{\textbf{TABLE 5 | Rachev Ratio ($\alpha=10\%$, 4-month window).} Nilai \textit{Rachev Ratio} untuk setiap strategi. RR mengukur asimetri distribusi return pada ekor distribusi.}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        \textbf{Strategy} & \textbf{Jan-2018} & \textbf{May-2018} & \textbf{Sep-2018} & \textbf{Jan-2019} & \textbf{May-2019} & \textbf{Sep-2019} \\
+        \midrule
+        EW                          & 0.3926 & 0.8889 & 0.8062 & 0.7200 & 1.7430 & 0.5381 \\
+        CM                          & 0.3969 & 0.7612 & 0.7865 & 0.6506 & 2.0115 & 0.7510 \\
+        GM                          & 0.4126 & 0.7515 & 0.7760 & 0.5600 & 1.6893 & 0.7353 \\
+        NW (gamma=0)                & 0.2494 & 0.7591 & 0.7824 & 0.6389 & 2.1048 & 0.7820 \\
+        NW (gamma=0.005)            & 0.2478 & 0.7625 & 0.6953 & 0.6421 & 2.0409 & 0.7798 \\
+        NW (gamma=0.025)            & 0.2332 & 0.7939 & 0.7954 & 1.0171 & 2.2107 & 0.7588 \\
+        NW (gamma=0.05)             & 0.1836 & 0.8387 & 0.8551 & 1.0171 & 2.1777 & 0.8317 \\
+        NW (gamma=0.15)             & 0.1822 & 1.0085 & 0.8492 & 1.0171 & 2.1687 & 0.8379 \\
+        NW (gamma=0.7)              & 0.2880 & 1.0222 & 0.8525 & 1.0171 & 2.1687 & 0.8614 \\
+        NW (gamma=1.0)              & 0.3488 & 1.0222 & 0.8170 & 1.0171 & 2.1687 & 0.8614 \\
+        Graph Divers. (theta=0.4)   & 0.3393 & 0.9376 & 1.0656 & 1.0366 & 2.2360 & 0.6440 \\
+        Graph Divers. (theta=0.5)   & 0.4197 & 0.9341 & 0.8178 & 1.0366 & 1.9485 & 0.5797 \\
+        RMT GD (theta=0.4)          & 0.3582 & 0.8375 & 0.7629 & 0.7179 & 1.8292 & 0.7511 \\
+        Dynamic Graph Divers. (ML)  & 0.4428 & 0.9805 & 0.6869 & 0.7897 & 1.7793 & 0.5725 \\
+        \textbf{AGGP (Optimized)}   & \textbf{0.5188} & \textbf{1.0019} & \textbf{0.7941} & \textbf{0.5625} & \textbf{1.8104} & \textbf{0.6928} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Sel 15 -- Analisis Fase Pasar (Market Phase Analysis Mapping)}
+%=============================================================================
+
+\begin{lstlisting}[caption={Kalkulasi Metrik Berdasarkan Fase Pasar}]
+# Definisi Fase Pasar
+fase_pasar = {
+    'Bearish':   ('2018-01-01', '2019-03-31'),
+    'Recovery':  ('2019-04-01', '2019-06-30'),
+    'Stable':    ('2019-07-01', '2019-10-17')
+}
+
+# (Kode implementasi kalkulasi Sharpe dan Rachev Ratio untuk tiap fase)
+\end{lstlisting}
+
+\begin{table}[h!]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{5pt}
+    \caption{\textbf{TABLE 6 | Market Phase Performance.} Perbandingan \textit{Sharpe Ratio} dan \textit{Rachev Ratio} untuk setiap model pada tiga kondisi pasar yang berbeda.}
+    \begin{tabular}{lcccccc}
+        \toprule
+        \textbf{Market Phase} & \textbf{EW} & \textbf{CM} & \textbf{GM} & \textbf{NW} & $\boldsymbol{\gamma=0.15}$ & \textbf{AGGP} \\
+        \midrule
+        \multicolumn{7}{c}{\textit{Panel A: Sharpe Ratio}} \\
+        \midrule
+        Bearish  & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        Recovery & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        Stable   & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        \midrule
+        \multicolumn{7}{c}{\textit{Panel B: Rachev Ratio ($\alpha=10\%$)}} \\
+        \midrule
+        Bearish  & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        Recovery & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        Stable   & \ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}
