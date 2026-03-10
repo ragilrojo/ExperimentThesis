@@ -1054,6 +1054,40 @@ memperkuat filter jaringan (\textit{high sensitivity}) untuk membuang aset-aset
 sentral yang berbahaya. Sebaliknya, saat pasar stabil, model cenderung memilih 
 parameter yang lebih moderat untuk memanfaatkan efisiensi alokasi Markowitz.
 
+% ============================================================================
+\section{Sel 9.6 --- Rekapitulasi Parameter Optimal (Table 7)}
+% ============================================================================
+
+Log pilihan parameter optimal dari mekanisme \textit{Grid Search} pada periode 
+backtesting tertentu:
+
+\vspace{6pt}
+\begin{table}[H]
+  \centering
+  \caption{TABLE 7 --- Log Parameter Optimal AGGP (Grid Search)}
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    \textbf{Backtest Date} & \textbf{Sensitivity ($S$)} & \textbf{Adj Threshold ($T$)} \\
+    \midrule
+    2018-01-31 & 3.0 & 0.6 \\
+    2018-05-24 & 2.0 & 0.5 \\
+    2018-09-27 & 4.0 & 0.7 \\
+    2019-01-31 & 5.0 & 0.5 \\
+    2019-05-23 & 1.0 & 0.4 \\
+    2019-09-26 & 2.0 & 0.5 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{Analisis Tabel 7:} Tabel di atas menunjukkan fleksibilitas model AGGP 
+dalam merespons kondisi pasar. Misalnya, pada Januari 2019, model memilih 
+sensitivitas tinggi ($S=5.0$) untuk benar-benar mengaktifkan mode defensif, 
+sementara pada Mei 2019 saat pasar mulai pulih (\textit{recovery}), model 
+memilh sensitivitas rendah ($S=1.0$) untuk lebih condong ke arah 
+\textit{Mean-Variance Optimization}.
+
+
 
 Tabel perbandingan \textbf{Cumulative Profit/Loss} yang disampel setiap 4 bulan
 (Januari, Mei, September).
