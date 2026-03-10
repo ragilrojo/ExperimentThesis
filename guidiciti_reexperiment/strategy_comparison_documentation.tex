@@ -1010,9 +1010,50 @@ All backtests completed!
 \end{verbatim}
 \end{tcolorbox}
 
+\end{tcolorbox}
+
 % ============================================================================
-\section{Sel 10 --- Analisis Performa Periodik (Table 2)}
+\section{Sel 9.5 --- Visualisasi Parameter Optimal AGGP (Figure 7)}
 % ============================================================================
+
+Analisis dinamika parameter yang dipilih oleh model \textbf{AGGP (Grid Search)} 
+selama periode simulasi. Gambar ini menunjukkan bagaimana sensitivitas ($S$) 
+dan ambang batas korelasi ($T$) beradaptasi terhadap perubahan kondisi pasar.
+
+\cellIn{10.5}
+\begin{tcolorbox}[codebox]
+\begin{lstlisting}[language=Python, numbers=none]
+# --- Visualisasi Parameter Optimal AGGP (Grid Search) ---
+grid_strat = next((s for s in strategies if isinstance(s, OptimizedGridAGGP)), None)
+
+if grid_strat and grid_strat.param_history:
+    hist_df = pd.DataFrame(grid_strat.param_history).set_index('date')
+    fig, ax1 = plt.subplots(figsize=(14, 6))
+    
+    # Plot Sensitivity
+    ax1.step(hist_df.index, hist_df['sensitivity'], where='post', 
+             color='blue', label='Optimal Sensitivity')
+    ax1.set_ylabel('Sensitivity', color='blue')
+    
+    # Plot Threshold
+    ax2 = ax1.twinx()
+    ax2.step(hist_df.index, hist_df['threshold'], where='post', 
+             color='green', linestyle='--', label='Optimal Threshold')
+    ax2.set_ylabel('Adjacency Threshold', color='green')
+    
+    plt.title('FIGURE 7 | Optimal AGGP Parameters over Time (Grid Search)')
+    fig.tight_layout()
+    plt.show()
+\end{lstlisting}
+\end{tcolorbox}
+
+\textbf{Analisis Figure 7:} Grafik ini menunjukkan evolusi parameter optimal 
+secara \textit{rolling}. Perubahan nilai sensitivitas secara mendadak seringkali 
+berkorelasi dengan lonjakan volatilitas pasar, di mana model secara otomatis 
+memperkuat filter jaringan (\textit{high sensitivity}) untuk membuang aset-aset 
+sentral yang berbahaya. Sebaliknya, saat pasar stabil, model cenderung memilih 
+parameter yang lebih moderat untuk memanfaatkan efisiensi alokasi Markowitz.
+
 
 Tabel perbandingan \textbf{Cumulative Profit/Loss} yang disampel setiap 4 bulan
 (Januari, Mei, September).
