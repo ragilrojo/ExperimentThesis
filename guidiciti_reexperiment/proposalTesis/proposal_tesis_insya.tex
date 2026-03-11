@@ -1,0 +1,439 @@
+%============================================================
+% TEMPLATE PROPOSAL TESIS
+% Program Studi Ilmu Komputer (S2)
+% Fakultas Teknologi Informasi
+% Universitas Nusa Mandiri
+% Revisi 2 - Februari 2024
+%============================================================
+
+\documentclass[12pt, a4paper]{report}
+
+%------------------------------------------------------------
+% PACKAGES
+%------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{times}                  % Times New Roman
+\usepackage[bahasa]{babel}          % Bahasa Indonesia
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{cite}                   % IEEE citation style
+\usepackage{notoccite}
+\usepackage{amsmath}
+\usepackage{microtype}
+
+%------------------------------------------------------------
+% MARGIN: Kiri-Atas-Kanan-Bawah = 4-3-2.5-2.5 cm
+%------------------------------------------------------------
+\geometry{
+    left   = 4cm,
+    top    = 3cm,
+    right  = 2.5cm,
+    bottom = 2.5cm,
+    a4paper
+}
+
+%------------------------------------------------------------
+% SPASI 1.5
+%------------------------------------------------------------
+\setstretch{1.5}
+
+%------------------------------------------------------------
+% FONT: Times New Roman 12pt (default via \usepackage{times})
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+% JUDUL BAB: Kapital, Tengah, Tebal, Tanpa Garis Bawah
+%------------------------------------------------------------
+\titleformat{\chapter}[block]
+    {\centering\bfseries\large}
+    {BAB \Roman{chapter}}
+    {1em}
+    {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+
+% SUBBAB LEVEL 1 (1.1)
+\titleformat{\section}
+    {\bfseries\normalsize}
+    {\thesection.}
+    {0.5em}
+    {}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+% SUBBAB LEVEL 2 (1.1.1)
+\titleformat{\subsection}
+    {\bfseries\normalsize}
+    {\thesubsection.}
+    {0.5em}
+    {}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+
+% SUBBAB LEVEL 3 (1.1.1.1)
+\titleformat{\subsubsection}
+    {\normalfont\normalsize}
+    {\thesubsubsection.}
+    {0.5em}
+    {}
+\titlespacing*{\subsubsection}{0pt}{8pt}{2pt}
+
+% Nonaktifkan penomoran bab di ToC (pakai huruf Romawi manual)
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\arabic{chapter}.\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{chapter}.\arabic{section}.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\arabic{chapter}.\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+
+%------------------------------------------------------------
+% DAFTAR ISI
+%------------------------------------------------------------
+\addto\captionsbahasa{%
+    \renewcommand{\contentsname}{DAFTAR ISI}%
+    \renewcommand{\listfigurename}{DAFTAR GAMBAR}%
+    \renewcommand{\listtablename}{DAFTAR TABEL}%
+    \renewcommand{\bibname}{DAFTAR REFERENSI}%
+    \renewcommand{\chaptername}{BAB}%
+}
+
+%------------------------------------------------------------
+% NOMOR HALAMAN
+%------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{%
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+%------------------------------------------------------------
+% HYPERREF (tautan PDF)
+%------------------------------------------------------------
+\hypersetup{
+    colorlinks = true,
+    linkcolor  = black,
+    citecolor  = black,
+    urlcolor   = black
+}
+
+%------------------------------------------------------------
+% CAPTION TABEL & GAMBAR
+%------------------------------------------------------------
+\captionsetup[table]{position=above, labelsep=period, singlelinecheck=false}
+\captionsetup[figure]{position=below, labelsep=period}
+
+%============================================================
+% DATA PROPOSAL — UBAH SESUAI KEBUTUHAN
+%============================================================
+\newcommand{\judulProposal}{OPTIMASI DINAMIS PEMODELAN NETWORK MARKOWITZ UNTUK MANAJEMEN PORTOFOLIO MATA UANG KRIPTO}
+\newcommand{\namaMahasiswa}{Nama Lengkap Mahasiswa}
+\newcommand{\nimMahasiswa}{XXXXXXXXX}
+\newcommand{\tahunProposal}{2024}
+
+%============================================================
+% DOKUMEN MULAI
+%============================================================
+\begin{document}
+
+%------------------------------------------------------------
+% HALAMAN SAMPUL
+%------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \setstretch{1.5}
+
+    {\bfseries\large \judulProposal \par}
+
+    \vspace{2cm}
+    \includegraphics[width=5cm]{logo_unm.png} % Ganti dengan path logo UNM
+
+    \vspace{1.5cm}
+    {\bfseries\Large PROPOSAL TESIS \par}
+
+    \vspace{0.5cm}
+    {\normalsize Diajukan sebagai salah satu syarat untuk memperoleh gelar \par}
+    {\normalsize Magister Komputer (M.Kom) \par}
+
+    \vspace{1.5cm}
+    {\bfseries\large \namaMahasiswa \par}
+    {\bfseries\large \nimMahasiswa \par}
+
+    \vfill
+
+    {\bfseries\normalsize Program Studi Ilmu Komputer (S2) \par}
+    {\bfseries\normalsize Fakultas Teknologi Informasi \par}
+    {\bfseries\normalsize Universitas Nusa Mandiri \par}
+    {\bfseries\normalsize Jakarta \par}
+    {\bfseries\normalsize \tahunProposal \par}
+\end{titlepage}
+
+%------------------------------------------------------------
+% HALAMAN PENGESAHAN
+%------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{2}
+
+\chapter*{HALAMAN PENGESAHAN}
+\addcontentsline{toc}{chapter}{HALAMAN PENGESAHAN}
+
+\begin{center}
+    {\bfseries PROPOSAL TESIS}
+\end{center}
+
+\vspace{0.5cm}
+\noindent
+Proposal tesis ini diajukan oleh:
+
+\vspace{0.5cm}
+\begin{tabular}{lll}
+    Nama          & : & \namaMahasiswa \\
+    NIM           & : & \nimMahasiswa \\
+    Program Studi & : & Ilmu Komputer \\
+    Fakultas      & : & Teknologi Informasi \\
+    Jenjang       & : & Strata Dua (S2) \\
+    Judul Tesis   & : & \judulProposal \\
+\end{tabular}
+
+\vspace{2cm}
+\noindent
+Jakarta, \today
+
+\vspace{1cm}
+\begin{tabular}{cc}
+    Dosen Pembimbing & \\[3cm]
+    \underline{\hspace{8cm}} & \\
+    Nama Dosen Pembimbing & \\
+    NIDN. XXXXXXXXXX & \\
+\end{tabular}
+
+%------------------------------------------------------------
+% DAFTAR ISI
+%------------------------------------------------------------
+\tableofcontents
+\clearpage
+
+%============================================================
+% BAB I — PENDAHULUAN
+%============================================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{PENDAHULUAN}
+
+\section{Latar Belakang}
+
+Mata uang kripto (\textit{cryptocurrency}) telah berkembang menjadi salah satu aset investasi digital yang sangat diminati namun memiliki tingkat volatilitas ekstrem. Dalam manajemen portofolio tradisional, model \textit{Mean-Variance} dari Markowitz kerap digunakan untuk mengalokasikan aset demi mencapai kombinasi \textit{return} dan risiko yang optimal. Sayangnya, model klasik ini sangat rentan terhadap *noise* dan estimasi matriks korelasi yang tidak stabil, terutama pada saat gejolak pasar (*market crash*) seperti fenomena \textit{crypto winter} \cite{ref1}.
+
+Ketika terjadi guncangan pasar, sebagian besar aset kripto cenderung jatuh secara bersamaan, merusak struktur korelasi normal dan menyebabkan portofolio standar mengalami kerugian parah (*drawdown* yang dalam). Untuk mengatasi tantangan tersebut, penelitian terkini mulai menggabungkan Teori Jaringan Kompleks (\textit{Complex Network Theory}) ke dalam optimasi portofolio \cite{ref2}. Penggunaan instrumen seperti \textit{Minimum Spanning Tree} (MST) dan \textit{Eigenvector Centrality} terbukti efisien dalam memetakan interaksi antar aset dan menghukum (*penalize*) aset-aset yang menjadi titik pusat kegagalan sistemik. 
+
+Kendati model \textit{Network Markowitz} statis menunjukkan proteksi yang lebih relevan dibandingkan \textit{Classical Markowitz}, penentuan faktor penalti sentralitas g ($\gamma$) yang kaku kerap menimbulkan masalah di fase pasar yang dinamis (misalnya fase \textit{recovery} atau \textit{bullish}). Oleh karena itu, diperlukan pendekatan adaptif yang mengintegrasikan teknik pembersihan sinyal berbasis \textit{Random Matrix Theory} (RMT) disandingkan dengan optimalisasi \textit{Grid Search} dinamis (\textit{rolling window}) agar portofolio dapat membentengi aset di saat *crypto winter* tanpa mengorbankan rasio *upside gain* di saat pembalikan arah (*bullish*).
+
+\section{Identifikasi Masalah}
+
+Berdasarkan latar belakang di atas, dapat diidentifikasi masalah sebagai berikut:
+\begin{enumerate}[label=\alph*.]
+    \item Model \textit{Classical Markowitz} rentan terhadap *spurious correlations* pada aset kripto yang bervolatilitas sangat tinggi, terutama pada kondisi krisis ekstrem.
+    \item Implementasi \textit{Network Markowitz} yang telah ada sering kali menggunakan hiper-parameter penalti sentralitas ($\gamma$) bernilai konstan (statis), yang berpotensi menjadi bumerang saat pasar memasuki rezim *recovery* atau *bullish*.
+    \item Kurangnya model sistematis yang secara metodis menyesuaikan struktur jaringan portofolio dengan rezim siklus guncangan harga terkini menggunakan teknik optimasi *rolling window* untuk aset-aset kripto utama.
+\end{enumerate}
+
+\section{Tujuan Penelitian}
+
+Tujuan dari penelitian ini adalah:
+\begin{enumerate}[label=\alph*.]
+    \item Menganalisis keandalan metodologi \textit{Network Markowitz} (dengan integrasi RMT filter dan Eigenvector Centrality) dalam menekan ekstrimitas *downside risk* dibandingkan pendekatan portofolio naif dan konvensional.
+    \item Merancang dan menguji model \textit{Network Markowitz} adaptif (\textit{Grid Search Optimization}) yang mampu melakukan re-kalibrasi dinamis dengan menggunakan paradigma \textit{rolling window} pada berbagai lanskap pasar (*Bearish*, *Recovery*, *Stable*).
+    \item Membandingkan performa perlindungan risiko sistemik (VaR) dan asimetri imbal hasil (*Rachev Ratio*) antara pemodelan baru dengan metode-metode *baseline* pada reksadana aset kripto.
+\end{enumerate}
+
+\section{Ruang Lingkup Penelitian}
+
+Ruang lingkup penelitian ini dibatasi pada:
+\begin{enumerate}[label=\alph*.]
+    \item Objek penelitian terfokus pada data fluktuasi harga harian dari 10 (\textit{sepuluh}) aset kripto utama dalam kerangka waktu historis termasuk masa resesi \textit{crypto winter} (14 September 2017 hingga 17 Oktober 2019).
+    \item Metode yang dibandingkan secara teknis mencakup \textit{Equally Weighted} (EW), \textit{Classical Markowitz} (CM), \textit{Glasso Markowitz} (GM), \textit{Network Markowitz} statis ($\gamma=0, 1.0, 2.0$), serta *Optimized* \textit{Network Markowitz} secara dinamis berbasis \textit{Grid Search}.
+    \item Pengujian (\textit{backtesting}) dilakukan dalam \textit{out-of-sample rolling window} (120 observasi ke belakang dengan frekuensi penyesuaian *rebablance* 7 hari) yang disimulasikan menggunakan \textit{transaction cost} atau estimasi biaya bursa (0.1\%).
+\end{enumerate}
+
+\section{Sistematika Penulisan}
+
+Sistematika penulisan proposal tesis ini disusun sebagai berikut:
+
+\textbf{BAB I PENDAHULUAN} \\
+Bab ini membahas latar belakang penelitian, identifikasi masalah, tujuan penelitian, ruang lingkup penelitian, dan sistematika penulisan.
+
+\textbf{BAB II LANDASAN/KERANGKA PEMIKIRAN} \\
+Bab ini membahas kerangka teori yang relevan mencakup Teori Portofolio Modern, \textit{Complex Network Theory}, dan Manajemen Risiko, serta tinjauan pustaka terhadap penelitian terdahulu di bidang Robo-Advisory kripto.
+
+\textbf{BAB III METODOLOGI PENELITIAN} \\
+Bab ini menjelaskan alur sistematis eksperimen yang digunakan untuk memproses data instrumen kripto, penyaringan RMT pada matriks korelasi historis, pembangunan MST, fungsi objektif Markowitz modifikasi, dan komputasi skema \textit{backtesting}.
+
+%============================================================
+% BAB II — LANDASAN / KERANGKA PEMIKIRAN
+%============================================================
+\chapter{LANDASAN/KERANGKA PEMIKIRAN}
+
+\section{Kerangka Teori}
+
+\subsection{Modern Portfolio Theory (Markowitz)}
+Teori Portofolio Modern, yang dipelopori oleh Harry Markowitz, berupaya memaksimalkan imbal hasil yang diharapkan (*expected return*) pada tingkat risiko (\textit{variance}) tertentu, atau sebaliknya. Masalah mendarnya adalah bahwa kovarians dari kumpulan asst finansial sangat sensitif terhadap nilai-nilai ekstrem historis, yang dikenal sebagai *Markowitz Curse* \cite{ref4}.
+
+\subsection{Random Matrix Theory (RMT) dan Kompleksitas Jaringan}
+Teori \textit{Random Matrix} memungkinkan disaringnya *noise* dari struktur korelasi dengan membandingkan nilai eigen (\textit{eigenvalues}) struktur empiris terhadap nilai batas distribusi teoritis Marchenko-Pastur \cite{ref3}. Ini merupakan vital element sebelum dilakukan visualisasi graf berupa \textit{Minimum Spanning Tree} (MST). 
+
+\subsection{Network Markowitz}
+Diperkenalkan baru-baru ini untuk penanganan robo-advisory pada kripto, komponen sentralitas *eigenvector* ditambahkan sebagai instrumen pinalti di dalam penyelesaian optimasi *Mean-Variance* \cite{ref1}. Sentralitas mewakili kerentanan sebuah aset mentransmisikan *shock* pada seluruh jaringan koin di pasar.
+
+\subsection{Penelitian Terdahulu}
+
+Beberapa penelitian terdahulu yang relevan dengan penelitian ini antara lain:
+
+\begin{table}[h!]
+    \centering
+    \caption{Perbandingan Penelitian Terdahulu}
+    \label{tab:penelitian_terdahulu}
+    \begin{tabularx}{\textwidth}{|c|X|X|X|}
+        \hline
+        \textbf{No} & \textbf{Penulis / Tahun} & \textbf{Judul} & \textbf{Hasil} \\
+        \hline
+        1 & Giudici, et al. (2020) & Network Models to Improve Automated Cryptocurrency \dots & Mengusulkan Network Markowitz dan sukses mendemonstrasikan perbaikan struktur dibandingkan Markowitz biasa di era crypto winter. \\
+        \hline
+        2 & Papenbrock (2011) & Financial networks and risk management & Bukti bahwa penggunaan analisis jaringan meningkatkan akurasi *risk metrics*. \\
+        \hline
+        3 & Mantegna (1999) & Hierarchical structure in financial markets & MST sukses memotret topologi kedekatan dan konektivitas sektor finansial dari pergerakan deret waktu pasar saham. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+%============================================================
+% BAB III — METODOLOGI PENELITIAN
+%============================================================
+\chapter{METODOLOGI PENELITIAN}
+
+\section{Tahapan Penelitian}
+
+Penelitian ini dilaksanakan melalui tahapan-tahapan sebagai berikut:
+
+\begin{enumerate}
+    \item \textbf{Studi Literatur} \\
+    Melakukan kajian komprehensif terhadap jurnal yang membahas \textit{crypto portfolio optimization}, \textit{graph theory}, dan \textit{Network Markowitz}.
+
+    \item \textbf{Pengumpulan Data \& Pengkondisian} \\
+    Mengumpulkan seri harga \textit{close} \textit{cryptocurrency}. Harga lalu diubah menjadi format \textit{log returns}.
+
+    \item \textbf{Pra-pemrosesan Data (RMT Filtering)} \\
+    Data *returns* akan diubah menjadi Matriks Korelasi (Pearson). Selanjutnya struktur *noise* historis dipotong (di-nol/gantikan) menggunakan mekanisme filtrasi nilai *eigen* (*eigenvalue clipping boundary* batas Marchenko-Pastur).
+
+    \item \textbf{Kuantifikasi Jaringan Aset (MST \& \textit{Centrality})} \\
+    Pembangunan jarak konektivitas (*distance matrix*) dari hasil korelasi terfilter untuk diekstraksi ke bentuk graf pohon *Minimum Spanning Tree* (MST). *Node importance* kemudian diukur melalui \textit{Eigenvector Centrality}.
+
+    \item \textbf{Optimasi Jaringan Adaptif (Dynamic Grid-Search)} \\
+    Merancang algoritma komputasi untuk menyesuaikan parameter *impact* korelasi ($\gamma$) yang secara otomatis mengekang instrumen-instrumen bervolatilitas sistemik pada jendela uji terkalibrasi ke belakang (\textit{backtrack validity}).
+
+    \item \textbf{Eksekusi \textit{Backtesting} Portofolio} \\
+    Mensimulasikan pembelian pada titik waktu (*t*) dan meninjau portofolio secara periodik menggunakan sistem \textit{Rolling Window}. Terdapat perlakuan pengenaan \textit{slippage/transaction log} pada *rebalancing* harian.
+
+    \item \textbf{Pengukuran Evaluasi Resiko (\textit{Performance Metrics})} \\
+    Mengukur nilai profit kumulatif, asimetri VaR 95\%, hingga penyesuaian \textit{Sharpe Ratio} dan \textit{Rachev Ratio} di sepanjang berbagai transisi fasa pasar ekstrem.
+\end{enumerate}
+
+\section{Alat dan Bahan Penelitian}
+
+\subsection{Perangkat Lunak}
+\begin{itemize}
+    \item Sistem Operasi: Windows 10/11
+    \item Bahasa Pemrograman: Python 3.x (dengan ekosistem Anaconda)
+    \item Framework/Library: Pandas, Numpy, Scipy (Optimization), Scikit-Learn, NetworkX (Graph Analytics).
+\end{itemize}
+
+\section{Dataset}
+
+Dataset yang akan digunakan adalah sekumpulan (\textit{pool}) 10 aset berbasis *cryptocurrency* berkapitalisasi tinggi yang tercatat aktif diperdagangkan secara bersinambung. Terdiri dari *Bitcoin* (BTC), *Ethereum* (ETH), *Ripple* (XRP), *Litecoin* (LTC), dan lain sebagainya. Observasi direntangkan secara sengaja mencakup era penggelembungan (*speculative bubble*), era krisis berkepanjangan (\textit{crypto winter bear market}), hingga skema normalisasi *stable*.
+
+\section{Metode/Algoritma yang Digunakan}
+
+Optimasi yang diajukan akan merubah fungsi pencarian model klasik Markowitz menjadi kerangka berbasis *penalty function* dinamis. Formula \textit{Network Markowitz}:
+
+\begin{equation}
+    \min_{w} \left( w^T \cdot S_f \cdot w + \gamma \sum (C_e \cdot w) \right)
+    \label{eq:networkmarkowitz}
+\end{equation}
+
+\noindent
+Keterangan: \\
+$w$ = Vektor alokasi bobot untuk setiap aset kripto (sumbangan = 1). \\
+$S_f$ = Matriks Kovarians terfilter RMT. \\
+$\gamma$ = Parameter skalar reguler untuk tingkat penghukuman (*penalty level*) sentralitas graf. \\
+$C_e$ = Vektor skor *Eigenvector Centrality* tiap-tiap entitas *node*.
+
+Pada penelitian ini, bobot $\gamma$ tidak akan dilakukan \textit{hard-coded statis}, melainkan secara luwes dan \textit{rolling} akan difungsikan optimasi *grid validation* berbasis metrik obyektif \textit{Sharpe Ratio} periode belakang.
+
+\section{Rencana Jadwal Penelitian}
+
+\begin{table}[h!]
+    \centering
+    \caption{Rencana Jadwal Penelitian}
+    \label{tab:jadwal}
+    \begin{tabularx}{\textwidth}{|c|X|c|c|c|c|c|c|}
+        \hline
+        \textbf{No} & \textbf{Kegiatan}
+            & \textbf{Bln 1} & \textbf{Bln 2} & \textbf{Bln 3}
+            & \textbf{Bln 4} & \textbf{Bln 5} & \textbf{Bln 6} \\
+        \hline
+        1 & Studi Literatur            & \checkmark & & & & & \\
+        \hline
+        2 & Pengumpulan Data           & \checkmark & \checkmark & & & & \\
+        \hline
+        3 & Pra-pemrosesan Data        & & \checkmark & \checkmark & & & \\
+        \hline
+        4 & Perancangan Model/Sistem   & & & \checkmark & \checkmark & & \\
+        \hline
+        5 & Implementasi               & & & & \checkmark & \checkmark & \\
+        \hline
+        6 & Pengujian dan Evaluasi     & & & & & \checkmark & \checkmark \\
+        \hline
+        7 & Penulisan Laporan          & & & \checkmark & \checkmark & \checkmark & \checkmark \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+%============================================================
+% DAFTAR REFERENSI (IEEE Style)
+%============================================================
+\renewcommand{\bibname}{DAFTAR REFERENSI}
+
+\begin{thebibliography}{99}
+
+\bibitem{ref1}
+P. Giudici, A. Sariev, and G. Toscani, ``Network Models to Improve Automated Cryptocurrency Portfolio Management,'' \emph{Risks},
+vol. 8, no. 3, p. 96, 2020. https://doi.org/10.3390/risks8030096.
+
+\bibitem{ref2}
+S. S. Momeni dan R. E. Rostami, ``Portfolio selection using a hybrid methodology of network theory and optimization,'' \emph{Annals of Operations Research},
+vol. 308, pp. 317--345, 2021.
+
+\bibitem{ref3}
+V. A. Marchenko and L. A. Pastur, ``Distribution of eigenvalues for some sets of random matrices,'' \emph{Mathematics of the USSR-Sbornik},
+vol. 1, no. 4, pp. 457--483, 1967.
+
+\bibitem{ref4}
+H. Markowitz, ``Portfolio Selection,'' \emph{The Journal of Finance},
+vol. 7, no. 1, pp. 77--91, 1952.
+
+\bibitem{ref5}
+R. N. Mantegna, ``Hierarchical structure in financial markets,'' \emph{The European Physical Journal B},
+vol. 11, no. 1, pp. 193--197, 1999.
+
+\end{thebibliography}
+
+\end{document}
