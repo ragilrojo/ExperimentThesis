@@ -60,6 +60,7 @@ Strategi yang dibandingkan meliputi:
 \begin{enumerate}
     \item \textbf{Equally Weighted (EW)}: Portofolio naif ($1/N$). Sebagai tolok ukur terendah industri.
     \item \textbf{Classical Markowitz (CM)}: Optimasi Mean-Variance tradisional.
+    \item \textbf{Classical Markowitz 30 (CM 30)}: Varian CM dengan \textit{rolling window} 30 hari untuk perbandingan \textit{baseline} yang lebih adil terhadap model adaptif.
     \item \textbf{Glasso Markowitz (GM)}: Menggunakan regularisasi \textit{Graphical Lasso} untuk menyaring \textit{noise} matriks korelasi.
     \item \textbf{Network Markowitz (NW)}: Baseline utama dari Giudici et al. (2020) yang menggunakan \textit{Random Matrix Theory} (RMT) dan \textit{Minimum Spanning Tree} (MST). Direpresentasikan dengan $\gamma=0$ (RMT+MST murni) dan $\gamma=1.0$ (disertai penalti sentralitas eigenvector). Berdasarkan hasil eksperimen, NW dengan $\gamma=1.0$ adalah baseline terkuat.
     \item \textbf{Adaptive Graph-Gated Portfolio (AGGP v4)}: Model usulan (\textit{Proposed Method}) yang menggabungkan portofolio \textit{Equally Weighted} (EW) sebagai komponen defensif dengan komponen \textit{Network Markowitz} ($\gamma=1.0$) sebagai komponen agresif. Proporsi campuran ($\gamma_t$) dikendalikan oleh sensor \textit{average partial correlation} yang proper. Pemilihan EW sebagai komponen defensif didasarkan pada temuan literatur (DeMiguel et al., 2009) bahwa model naif seringkali lebih \textit{robust} dibandingkan optimasi Mean-Variance di pasar yang sangat volatile seperti aset kripto. AGGP v4 menggunakan \textit{threshold} yang dioptimasi ($\tau=0.15$) untuk transisi regime yang lebih responsif.
@@ -495,6 +496,7 @@ Setelah struktur strategi didefinisikan, dilakukan simulasi backtesting untuk se
 strategies = [
     EquallyWeighted("EW"),
     ClassicalMarkowitz("CM"),
+    ClassicalMarkowitz("CM 30", window_size=30),
     GlassoMarkowitz("GM"),
     NetworkMarkowitz("NW (gamma=0)", gamma=0),
     NetworkMarkowitz("NW (gamma=1.0)", gamma=1.0),  # Best performer Giudici et al.
