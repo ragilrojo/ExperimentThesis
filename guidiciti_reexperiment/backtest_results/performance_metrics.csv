@@ -1,4 +1,4 @@
 Strategy,Total Return,Sharpe,MDD
-NW (Gamma=1.0),100.07%,2.17,-6.40%
-RL-Net (Defensive),46.96%,1.09,-25.89%
-RL-Net (Total Return),39.32%,0.99,-25.94%
+NW (Gamma=1.0),41.30%,1.06,-27.04%
+RL-Net (Defensive),41.30%,1.06,-27.04%
+RL-Net (Total Return),41.30%,1.06,-27.04%
