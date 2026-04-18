@@ -1,8 +1,4 @@
 Strategy,Total Return,Sharpe,MDD
 NW (Gamma=1.0),100.07%,2.17,-6.40%
-NW (Gamma=0.5),99.83%,2.17,-6.39%
-EW ($1/N$),41.30%,1.06,-27.04%
-Markowitz (MVP),38.77%,1.06,-25.23%
-RL-Net (Sharpe),99.91%,2.17,-6.39%
-RL-Net (Defensive),25.83%,0.74,-29.16%
-RL-Net (Alpha/Excess),99.59%,2.17,-6.38%
+RL-Net (Defensive),46.96%,1.09,-25.89%
+RL-Net (Total Return),39.32%,0.99,-25.94%
