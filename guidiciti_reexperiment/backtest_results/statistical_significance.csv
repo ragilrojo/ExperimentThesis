@@ -1,22 +1,22 @@
-Comparison,DM-Stat,P-Value,Significant
-SAC-Net (Excess NW) vs SAC-Net (Sharpe Incr),-1.0261899342472673,0.3048020650424683,No
-SAC-Net (Excess NW) vs NW (Gamma=1.0),-1.04728511928611,0.29496809716959627,No
-SAC-Net (Excess NW) vs NW (Gamma=0.0),-0.7824854630442881,0.43392932530916006,No
-SAC-Net (Excess NW) vs Equal Weight,0.5272687986820185,0.5980069383250592,No
-SAC-Net (Excess NW) vs Classical Markowitz,0.4079711141403716,0.68329488197447,No
-SAC-Net (Excess NW) vs BTC (Buy & Hold),-1.8897749393067613,0.05878806659126812,No
-SAC-Net (Sharpe Incr) vs NW (Gamma=1.0),-0.471000615280545,0.6376402955225509,No
-SAC-Net (Sharpe Incr) vs NW (Gamma=0.0),-0.2065380507149972,0.8363706452389099,No
-SAC-Net (Sharpe Incr) vs Equal Weight,0.8395488028551749,0.40116141511295345,No
-SAC-Net (Sharpe Incr) vs Classical Markowitz,0.7169807844581733,0.47338595332799605,No
-SAC-Net (Sharpe Incr) vs BTC (Buy & Hold),-1.7411198823529677,0.08166256692236562,No
-NW (Gamma=1.0) vs NW (Gamma=0.0),-0.18878204825985273,0.850263642261154,No
-NW (Gamma=1.0) vs Equal Weight,0.8462823080791926,0.3973952750259737,No
-NW (Gamma=1.0) vs Classical Markowitz,0.7223123079146484,0.4701024874826061,No
-NW (Gamma=1.0) vs BTC (Buy & Hold),-1.7385798368257603,0.08210869572669899,No
-NW (Gamma=0.0) vs Equal Weight,0.8496788232615513,0.3955036751767462,No
-NW (Gamma=0.0) vs Classical Markowitz,0.9549426231670032,0.3396067134468841,No
-NW (Gamma=0.0) vs BTC (Buy & Hold),-1.7176142235385166,0.08586700421300897,No
-Equal Weight vs Classical Markowitz,-0.094442419933118,0.924757720136725,No
-Equal Weight vs BTC (Buy & Hold),-2.097770082178638,0.03592546058010648,Yes
-Classical Markowitz vs BTC (Buy & Hold),-2.0708746344748126,0.03837051318328166,Yes
+Comparison,T-Stat,T p-value,DM-Stat,DM p-value,Significant
+Equal Weight vs Classical Markowitz,-0.0942,0.925,-0.0944,0.9248,No
+Equal Weight vs NW (Gamma=1.0),-0.8442,0.3996,-0.8463,0.3974,No
+Equal Weight vs NW (Gamma=0.0),-0.8475,0.3977,-0.8497,0.3955,No
+Equal Weight vs BTC (Buy & Hold),-2.0925,0.0377,-2.0978,0.0359,Yes*
+Equal Weight vs SAC-Net (Sharpe Incr),-3.0481,0.0026,-3.0558,0.0022,Yes*
+Equal Weight vs SAC-Net (Total Return),-2.2593,0.025,-2.265,0.0235,Yes*
+Classical Markowitz vs NW (Gamma=1.0),-0.7205,0.4721,-0.7223,0.4701,No
+Classical Markowitz vs NW (Gamma=0.0),-0.9525,0.342,-0.9549,0.3396,No
+Classical Markowitz vs BTC (Buy & Hold),-2.0657,0.0402,-2.0709,0.0384,Yes*
+Classical Markowitz vs SAC-Net (Sharpe Incr),-2.7559,0.0064,-2.7629,0.0057,Yes*
+Classical Markowitz vs SAC-Net (Total Return),-2.0799,0.0388,-2.0851,0.0371,Yes*
+NW (Gamma=1.0) vs NW (Gamma=0.0),-0.1883,0.8508,-0.1888,0.8503,No
+NW (Gamma=1.0) vs BTC (Buy & Hold),-1.7342,0.0844,-1.7386,0.0821,No
+NW (Gamma=1.0) vs SAC-Net (Sharpe Incr),-2.2904,0.0231,-2.2962,0.0217,Yes*
+NW (Gamma=1.0) vs SAC-Net (Total Return),-1.4344,0.153,-1.438,0.1504,No
+NW (Gamma=0.0) vs BTC (Buy & Hold),-1.7133,0.0882,-1.7176,0.0859,No
+NW (Gamma=0.0) vs SAC-Net (Sharpe Incr),-2.3233,0.0212,-2.3291,0.0199,Yes*
+NW (Gamma=0.0) vs SAC-Net (Total Return),-1.427,0.1551,-1.4306,0.1525,No
+BTC (Buy & Hold) vs SAC-Net (Sharpe Incr),0.8687,0.386,0.8709,0.3838,No
+BTC (Buy & Hold) vs SAC-Net (Total Return),1.2147,0.2259,1.2178,0.2233,No
+SAC-Net (Sharpe Incr) vs SAC-Net (Total Return),1.6202,0.1068,1.6243,0.1043,No
