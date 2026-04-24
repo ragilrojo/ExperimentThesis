@@ -1,0 +1,37 @@
+Comparison,T-Stat,T p-value,DM-Stat,DM p-value,Significant
+Equal Weight vs Classical Markowitz,-0.0942,0.925,-0.0944,0.9248,No
+Equal Weight vs NW (Gamma=1.0),-0.8442,0.3996,-0.8463,0.3974,No
+Equal Weight vs NW (Gamma=0.0),-0.8475,0.3977,-0.8497,0.3955,No
+Equal Weight vs BTC (Buy & Hold),-2.0925,0.0377,-2.0978,0.0359,Yes*
+Equal Weight vs SAC-Net (Sharpe Incr),-1.4685,0.1436,-1.4722,0.141,No
+Equal Weight vs SAC-Net (Total Return),-1.4685,0.1436,-1.4722,0.141,No
+Equal Weight vs TD3-Net (Sharpe Incr),-0.8441,0.3996,-0.8462,0.3974,No
+Equal Weight vs TD3-Net (Total Return),-0.8441,0.3996,-0.8462,0.3974,No
+Classical Markowitz vs NW (Gamma=1.0),-0.7205,0.4721,-0.7223,0.4701,No
+Classical Markowitz vs NW (Gamma=0.0),-0.9525,0.342,-0.9549,0.3396,No
+Classical Markowitz vs BTC (Buy & Hold),-2.0657,0.0402,-2.0709,0.0384,Yes*
+Classical Markowitz vs SAC-Net (Sharpe Incr),-1.2581,0.2098,-1.2613,0.2072,No
+Classical Markowitz vs SAC-Net (Total Return),-1.2581,0.2098,-1.2613,0.2072,No
+Classical Markowitz vs TD3-Net (Sharpe Incr),-0.7205,0.4721,-0.7223,0.4701,No
+Classical Markowitz vs TD3-Net (Total Return),-0.7205,0.4721,-0.7223,0.4701,No
+NW (Gamma=1.0) vs NW (Gamma=0.0),-0.1883,0.8508,-0.1888,0.8503,No
+NW (Gamma=1.0) vs BTC (Buy & Hold),-1.7342,0.0844,-1.7386,0.0821,No
+NW (Gamma=1.0) vs SAC-Net (Sharpe Incr),-1.2333,0.2189,-1.2364,0.2163,No
+NW (Gamma=1.0) vs SAC-Net (Total Return),-1.2333,0.2189,-1.2364,0.2163,No
+NW (Gamma=1.0) vs TD3-Net (Sharpe Incr),-0.0917,0.927,-0.092,0.9267,No
+NW (Gamma=1.0) vs TD3-Net (Total Return),-0.0917,0.927,-0.092,0.9267,No
+NW (Gamma=0.0) vs BTC (Buy & Hold),-1.7133,0.0882,-1.7176,0.0859,No
+NW (Gamma=0.0) vs SAC-Net (Sharpe Incr),-0.8221,0.412,-0.8241,0.4099,No
+NW (Gamma=0.0) vs SAC-Net (Total Return),-0.8221,0.412,-0.8241,0.4099,No
+NW (Gamma=0.0) vs TD3-Net (Sharpe Incr),0.1883,0.8509,0.1887,0.8503,No
+NW (Gamma=0.0) vs TD3-Net (Total Return),0.1883,0.8509,0.1887,0.8503,No
+BTC (Buy & Hold) vs SAC-Net (Sharpe Incr),1.5669,0.1187,1.5709,0.1162,No
+BTC (Buy & Hold) vs SAC-Net (Total Return),1.5669,0.1187,1.5709,0.1162,No
+BTC (Buy & Hold) vs TD3-Net (Sharpe Incr),1.7342,0.0844,1.7385,0.0821,No
+BTC (Buy & Hold) vs TD3-Net (Total Return),1.7342,0.0844,1.7385,0.0821,No
+SAC-Net (Sharpe Incr) vs SAC-Net (Total Return),,,0.0,1.0,No
+SAC-Net (Sharpe Incr) vs TD3-Net (Sharpe Incr),1.2331,0.219,1.2362,0.2164,No
+SAC-Net (Sharpe Incr) vs TD3-Net (Total Return),1.2331,0.219,1.2362,0.2164,No
+SAC-Net (Total Return) vs TD3-Net (Sharpe Incr),1.2331,0.219,1.2362,0.2164,No
+SAC-Net (Total Return) vs TD3-Net (Total Return),1.2331,0.219,1.2362,0.2164,No
+TD3-Net (Sharpe Incr) vs TD3-Net (Total Return),,,0.0,1.0,No

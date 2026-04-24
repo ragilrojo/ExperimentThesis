@@ -1,0 +1,10 @@
+,Feature,Δγ (+1 std),Δγ (-1 std),|Δγ| avg,Direction
+1,Momentum×100,4.9444,5.23243,5.08841,↑
+2,Short-term Return×100,5.74305,-2.94829,4.34567,↑
+3,Recent Volatility×100,2.91483,3.62846,3.27164,↑
+4,MST Distance×0.1,0.37745,-0.1727,0.27508,↑
+5,Correlation Density,0.16006,-0.08664,0.12335,↑
+6,Centrality Mean×10,-0.07786,0.07832,0.07809,↓
+7,Centrality Std×10,-0.05921,0.05948,0.05934,↓
+8,Max Centrality,-0.01185,0.01186,0.01185,↓
+9,Portfolio Value-1,0.0,0.0,0.0,↓

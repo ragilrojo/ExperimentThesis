@@ -1,0 +1,13 @@
+,Feature,Mean |SHAP|,Direction
+10,Trend×100,0.3182922338284019,↑ Gamma naik
+5,Short Return×100,0.26160795969802164,↑ Gamma naik
+7,Recent Vol×100,0.21488473284197684,↑ Gamma naik
+6,Momentum×100,0.15795861514381557,↑ Gamma naik
+11,Drawdown×10,0.07053401398855673,↓ Gamma turun
+2,MST Distance×0.1,0.020169556822666822,↑ Gamma naik
+4,Corr Density,0.020169078309283293,↑ Gamma naik
+9,Vol Ratio,0.014862322532821373,↓ Gamma turun
+3,Max Centrality,0.005049179301393929,↓ Gamma turun
+0,Centrality Std×10,0.004919677038669292,↑ Gamma naik
+1,Centrality Mean×10,0.004666488574113607,↓ Gamma turun
+8,Portfolio PnL,0.0,↓ Gamma turun

@@ -1,0 +1,11 @@
+Comparison,DM-Stat,DM p-value,T-Stat,T p-value,Significant
+Equal Weight vs NW (Gamma=1.0),-0.8463,0.3974,-0.8442,0.3996,No
+Equal Weight vs SAC-Net (Sortino),-0.7988,0.4244,-0.7968,0.4265,No
+Equal Weight vs SAC-Net (Omega),-0.7988,0.4244,-0.7968,0.4265,No
+Equal Weight vs SAC-Net (Calmar+DD),-0.7988,0.4244,-0.7968,0.4265,No
+NW (Gamma=1.0) vs SAC-Net (Sortino),1.306,0.1916,1.3027,0.1942,No
+NW (Gamma=1.0) vs SAC-Net (Omega),1.306,0.1916,1.3027,0.1942,No
+NW (Gamma=1.0) vs SAC-Net (Calmar+DD),1.306,0.1916,1.3027,0.1942,No
+SAC-Net (Sortino) vs SAC-Net (Omega),0.0,1.0,,,No
+SAC-Net (Sortino) vs SAC-Net (Calmar+DD),0.0,1.0,,,No
+SAC-Net (Omega) vs SAC-Net (Calmar+DD),0.0,1.0,,,No

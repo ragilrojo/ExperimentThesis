@@ -1,22 +1,16 @@
 Comparison,T-Stat,T p-value,DM-Stat,DM p-value,Significant
-Equal Weight vs Classical Markowitz,-0.0942,0.925,-0.0944,0.9248,No
-Equal Weight vs NW (Gamma=1.0),-0.8442,0.3996,-0.8463,0.3974,No
-Equal Weight vs NW (Gamma=0.0),-0.8475,0.3977,-0.8497,0.3955,No
-Equal Weight vs BTC (Buy & Hold),-2.0925,0.0377,-2.0978,0.0359,Yes*
-Equal Weight vs SAC-Net (Sharpe Incr),-2.7443,0.0066,-2.7512,0.0059,Yes*
-Equal Weight vs SAC-Net (Total Return),-1.1579,0.2483,-1.1609,0.2457,No
 Classical Markowitz vs NW (Gamma=1.0),-0.7205,0.4721,-0.7223,0.4701,No
 Classical Markowitz vs NW (Gamma=0.0),-0.9525,0.342,-0.9549,0.3396,No
 Classical Markowitz vs BTC (Buy & Hold),-2.0657,0.0402,-2.0709,0.0384,Yes*
-Classical Markowitz vs SAC-Net (Sharpe Incr),-2.5168,0.0126,-2.5231,0.0116,Yes*
-Classical Markowitz vs SAC-Net (Total Return),-1.006,0.3156,-1.0085,0.3132,No
+Classical Markowitz vs SAC-Net (Sharpe Incr),-1.3527,0.1777,-1.3561,0.1751,No
+Classical Markowitz vs SAC-Net (Total Return),-1.4635,0.1449,-1.4672,0.1423,No
 NW (Gamma=1.0) vs NW (Gamma=0.0),-0.1883,0.8508,-0.1888,0.8503,No
 NW (Gamma=1.0) vs BTC (Buy & Hold),-1.7342,0.0844,-1.7386,0.0821,No
-NW (Gamma=1.0) vs SAC-Net (Sharpe Incr),-2.05,0.0417,-2.0551,0.0399,Yes*
-NW (Gamma=1.0) vs SAC-Net (Total Return),-0.3476,0.7285,-0.3485,0.7275,No
+NW (Gamma=1.0) vs SAC-Net (Sharpe Incr),-0.9655,0.3355,-0.9679,0.3331,No
+NW (Gamma=1.0) vs SAC-Net (Total Return),-1.1115,0.2677,-1.1143,0.2651,No
 NW (Gamma=0.0) vs BTC (Buy & Hold),-1.7133,0.0882,-1.7176,0.0859,No
-NW (Gamma=0.0) vs SAC-Net (Sharpe Incr),-2.1461,0.0331,-2.1515,0.0314,Yes*
-NW (Gamma=0.0) vs SAC-Net (Total Return),-0.2238,0.8232,-0.2243,0.8225,No
-BTC (Buy & Hold) vs SAC-Net (Sharpe Incr),1.0405,0.2994,1.0431,0.2969,No
-BTC (Buy & Hold) vs SAC-Net (Total Return),1.6911,0.0924,1.6954,0.09,No
-SAC-Net (Sharpe Incr) vs SAC-Net (Total Return),2.8628,0.0047,2.87,0.0041,Yes*
+NW (Gamma=0.0) vs SAC-Net (Sharpe Incr),-0.7821,0.4351,-0.7841,0.433,No
+NW (Gamma=0.0) vs SAC-Net (Total Return),-0.9149,0.3614,-0.9172,0.359,No
+BTC (Buy & Hold) vs SAC-Net (Sharpe Incr),1.5528,0.1221,1.5567,0.1195,No
+BTC (Buy & Hold) vs SAC-Net (Total Return),1.5259,0.1286,1.5297,0.1261,No
+SAC-Net (Sharpe Incr) vs SAC-Net (Total Return),-0.4189,0.6757,-0.42,0.6745,No
