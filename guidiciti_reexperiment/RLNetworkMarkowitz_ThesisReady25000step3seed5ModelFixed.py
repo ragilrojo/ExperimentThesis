@@ -23,13 +23,6 @@ ABLATION_CONFIGS = {
 
     # --- Proposed: E2_NoMarket (Full Network Features, SAC Dynamic) ---
     'E2_NoMarket'        : {'use_network': True,  'use_market': False, 'extra_features': []},
-
-    # --- LOO Ablation: Drop-One-Feature ---
-    'E2_NoCentStd'       : {'use_network': True,  'use_market': False, 'extra_features': [], 'drop_nw_idx': 0},
-    'E2_NoCentMean'      : {'use_network': True,  'use_market': False, 'extra_features': [], 'drop_nw_idx': 1},
-    'E2_NoMSTDist'       : {'use_network': True,  'use_market': False, 'extra_features': [], 'drop_nw_idx': 2},
-    'E2_NoMaxCent'       : {'use_network': True,  'use_market': False, 'extra_features': [], 'drop_nw_idx': 3},
-    'E2_NoDensity'       : {'use_network': True,  'use_market': False, 'extra_features': [], 'drop_nw_idx': 4},
 }
 
 import pandas as pd
@@ -46,6 +39,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import BaseCallback
+from networkx.algorithms import community  # Untuk Modularity
 
 warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8-whitegrid')
@@ -286,7 +280,6 @@ ABLATION_COLORS = {
 
 MAIN_EXPS = ['Comp_Static_Gamma0', 'Comp_Static_Gamma1', 'Comp_Static_Gamma2',
              'E2_NoMarket', 'Classic-MV']
-LOO_EXPS  = ['E2_NoMarket', 'E2_NoCentStd', 'E2_NoCentMean', 'E2_NoMSTDist', 'E2_NoMaxCent', 'E2_NoDensity']
 
 METRIC_KEY = {
     'Sharpe Ratio' : 'SharpeRatio',
@@ -296,6 +289,14 @@ METRIC_KEY = {
 }
 FOUR_METRICS = list(METRIC_KEY.keys())
 
+
+def get_display_name(exp_id):
+    """Memberikan nama tampilan yang informatif untuk legenda & plot."""
+    name = exp_id.replace('_', ' ')
+    # Tandai model yang tidak memiliki variasi antar seed (deterministik)
+    if 'Static' in exp_id or exp_id == 'Classic-MV':
+        return f"{name} (Det)"
+    return name
 
 def _style_table(tbl, col_labels, n_rows):
     tbl.auto_set_font_size(False)
@@ -359,17 +360,39 @@ def compute_network_features(returns_window):
     """5 network features dari MST. MST dibangun sekali, dipakai ulang."""
     T, N = returns_window.shape
     corr_f  = apply_rmt_filter(returns_window)
-    # 1. Network Density (standard undirected: ignore diagonal)
+    # 1. Network Density (standard undirected)
     upper_idx = np.triu_indices(N, k=1)
     density   = np.sum(np.abs(corr_f[upper_idx]) > 0.1) / (N * (N - 1) / 2) if N > 1 else 0.0
+    
+    # 2. MST and Core Features
     mst, cent_vec = _build_mst_centrality(N, corr_f)
     mst_dist = sum(d['weight'] for _, _, d in mst.edges(data=True))
+    
+    # --- FITUR BARU (Thesis Expansion) ---
+    # 3. Clustering Coefficient (Sistemik)
+    avg_clustering = nx.average_clustering(mst)
+    # 4. Average Path Length (Shock Propagation Speed)
+    avg_path_len = nx.average_shortest_path_length(mst)
+    # 5. Modularity Score (Community/Sektoral)
+    comm = list(community.greedy_modularity_communities(mst))
+    mod_score = community.modularity(mst, comm)
+    # 6. Spectral Gap / Algebraic Connectivity (Robustness)
+    spectral_gap = nx.algebraic_connectivity(mst)
+    # 7. Betweenness Centrality (Bridge Assets)
+    bet_cent = nx.betweenness_centrality(mst)
+    bet_mean = np.mean(list(bet_cent.values()))
+
     return np.array([
-        np.std(cent_vec)  * 10,
-        np.mean(cent_vec) * 10,
-        mst_dist          * 0.1,
-        np.max(cent_vec),
-        density
+        np.std(cent_vec)  * 10,  # 0: Cent.Std
+        np.mean(cent_vec) * 10,  # 1: Cent.Mean
+        mst_dist          * 0.1, # 2: MST.Dist
+        np.max(cent_vec),        # 3: Max.Cent
+        density,                 # 4: Net.Density
+        avg_clustering    * 10,  # 5: Clustering
+        avg_path_len      * 0.1, # 6: Path.Length
+        mod_score,               # 7: Modularity
+        spectral_gap,            # 8: Spectral.Gap
+        bet_mean          * 10   # 9: Betweenness.Mean
     ], dtype=np.float32), corr_f, cent_vec
 
 
@@ -511,7 +534,7 @@ def build_observation(returns_window, config, port_val=0.0, nw_feat_raw=None, co
 def get_obs_dim(config):
     dim = 0
     if config['use_network']:
-        dim += (4 if 'drop_nw_idx' in config else 5)
+        dim += (9 if 'drop_nw_idx' in config else 10)
     if config['use_market']:  dim += 4
     dim += len(config['extra_features'])
     return max(dim, 1)
@@ -551,22 +574,17 @@ def build_caches_from_global(config, global_cache):
 
 print('build_caches_from_global() siap digunakan.')
 
-# Feature Correlation Analysis
+# Feature Correlation Analysis (Extended Network Features)
 feat_names = ['Cent.Std', 'Cent.Mean', 'MST.Dist', 'Max.Cent', 'Net.Density',
-              'Short.Ret', 'Momentum', 'Recent.Vol', 'Port.Val', 'Downside.Vol', 'Avg.Corr']
+              'Clustering', 'Path.Len', 'Modularity', 'Spectral.Gap', 'Betw.Mean']
 
 all_features = []
-for i in sorted(GLOBAL_CACHE.keys()):
-    win = ret_train.iloc[i - SET_WINDOW : i]
-    cache = GLOBAL_CACHE[i]
-    nw  = cache['nw_feat_full']
-    mkt = compute_market_features(win)
-    ret_flat = win.values.flatten()
-    neg = ret_flat[ret_flat < 0]
-    dv = np.std(neg) * np.sqrt(252) * 10 if len(neg) > 0 else 0.0
-    upper_tri = cache['corr_f'][np.triu_indices(cache['corr_f'].shape[0], k=1)]
-    avg_corr = float(np.mean(np.abs(upper_tri)))
-    all_features.append(np.concatenate([nw, mkt, [dv, avg_corr]]))
+# FIX: Filter hanya menggunakan data training untuk analisis korelasi
+train_keys = [k for k in GLOBAL_CACHE.keys() if k < len(ret_train)]
+for i in sorted(train_keys):
+    # Ambil fitur network mentah dari cache
+    nw = GLOBAL_CACHE[i]['nw_feat_full']
+    all_features.append(nw)
 
 df_feat = pd.DataFrame(all_features, columns=feat_names)
 
@@ -606,15 +624,16 @@ if not found:
 # -------------------- New Cell --------------------
 class AblationPortfolioEnv(gym.Env):
     def __init__(self, returns_data, obs_cache, opt_cache,
-                 config, window_size=30, gamma_center=1.0):
+                 config, window_size=30, gamma_center=1.0, data_start_offset=0):
         super().__init__()
-        self.data            = returns_data
-        self.obs_cache       = obs_cache
-        self.opt_cache       = opt_cache
-        self.config          = config
-        self.window_size     = window_size
-        self.gamma_center    = gamma_center
-        self.current_step    = window_size
+        self.data              = returns_data
+        self.obs_cache         = obs_cache
+        self.opt_cache         = opt_cache
+        self.config            = config
+        self.window_size       = window_size
+        self.gamma_center      = gamma_center
+        self.data_start_offset = data_start_offset
+        self.current_step      = window_size
         self.port_val        = 1.0
         self.peak_val        = 1.0
         self._returns_buffer = []
@@ -629,10 +648,18 @@ class AblationPortfolioEnv(gym.Env):
                                             shape=(obs_dim,), dtype=np.float32)
 
     def _get_obs(self):
-        obs = self.obs_cache[self.current_step].copy()
+        # Gunakan offset agar sinkron dengan GLOBAL_CACHE (train vs test)
+        global_idx = self.data_start_offset + self.current_step
+        obs = self.obs_cache[global_idx].copy()
+        
         if self.config['use_market']:
-            offset = 5 if self.config['use_network'] else 0
-            port_val_idx = offset + 3
+            # FIX: Hitung offset dinamis untuk fitur network (bisa 4 atau 5)
+            nw_offset = 0
+            if self.config['use_network']:
+                nw_offset = (4 if 'drop_nw_idx' in self.config else 5)
+            
+            # port_val adalah fitur ke-4 (index 3) dalam blok market
+            port_val_idx = nw_offset + 3
             if port_val_idx < len(obs):
                 obs[port_val_idx] = self.port_val - 1.0
         return obs
@@ -1112,40 +1139,9 @@ for comp_id in comparison_ids:
         'Conclusion' : conclusion,
     })
 
-print()
-print('Ablation: E2_NoMarket vs Drop-Feature configs (Sharpe Ratio per-seed, uji berpasangan):')
-print(f'{"Comparison":<25} {"Sharpe Proposed":>16} {"Sharpe Compared":>16} {"p-value":>10} {"Significant":>12}')
-print('-' * 85)
-
-proposed_sharpes = [
-    calculate_sharpe_ratio(ablation_results[proposed_id]['test'][s])
-    for s in SEEDS
-]
-for comp_id in LOO_EXPS[1:]:  # skip E2_NoMarket itself
-    comp_sharpes = [
-        calculate_sharpe_ratio(ablation_results[comp_id]['test'][s])
-        for s in SEEDS
-    ]
-    if len(SEEDS) >= 3:
-        try:
-            stat, pval = stats.wilcoxon(proposed_sharpes, comp_sharpes)
-            is_sig = pval < STAT_ALPHA
-        except Exception:
-            pval, is_sig = np.nan, False
-    else:
-        pval, is_sig = np.nan, False
-        print(f'  (Perlu ≥3 seed untuk Wilcoxon berpasangan — gunakan multi-seed)')
-
-    print(f'{comp_id:<25} {np.mean(proposed_sharpes):>16.4f} {np.mean(comp_sharpes):>16.4f} '
-          f'{pval:>10.4f} {"YA ✓" if is_sig else "TIDAK ✗":>12}')
-    stat_records.append({
-        'Proposed'   : proposed_id,
-        'Compared_to': comp_id,
-        'Statistic'  : np.nan,
-        'p_value'    : pval,
-        'Significant': is_sig,
-        'Conclusion' : 'Sharpe pair test',
-    })
+# --- (Bagian LOO Ablation Test dinonaktifkan sesuai request simulasi 5 algoritma) ---
+# for comp_id in LOO_EXPS[1:]:  # skip E2_NoMarket itself
+#     ...
 
 stat_df = pd.DataFrame(stat_records)
 stat_df.to_csv('ablation_results_thesis/statistical_tests.csv', index=False)
@@ -1206,7 +1202,7 @@ for i, exp_id in enumerate(wf_ids):
     offset = (i - len(wf_ids)/2) * width + width/2
     bars = ax.bar(x + offset, means, width, yerr=stds, capsize=3,
                   color=ABLATION_COLORS.get(exp_id, '#888'),
-                  label=exp_id, alpha=0.85, edgecolor='white')
+                  label=get_display_name(exp_id), alpha=0.85, edgecolor='white')
 
 ax.axhline(0, color='black', linewidth=0.7, linestyle='--')
 ax.set_xticks(x)
@@ -1224,8 +1220,8 @@ wf_df.to_csv('ablation_results_thesis/walkforward_results.csv', index=False)
 print('\nSaved: ablation_results_thesis/walkforward_robustness.png')
 print('Saved: ablation_results_thesis/walkforward_results.csv')
 
-# Consistency score: apakah proposed selalu outperform EW di setiap periode?
-print('\nKonsistensi E2_NoMarket vs EW per sub-periode:')
+# Consistency score: apakah proposed selalu outperform Classic-MV di setiap periode?
+print('\nKonsistensi E2_NoMarket vs Classic-MV per sub-periode:')
 for period_label, _ in window_ids:
     proposed_sharpe = wf_df[(wf_df['Period']==period_label) & (wf_df['Experiment']=='E2_NoMarket')]['Sharpe_Mean'].values
     cmv_sharpe = wf_df[(wf_df['Period']==period_label) & (wf_df['Experiment']=='Classic-MV')]['Sharpe_Mean'].values
@@ -1312,7 +1308,7 @@ for exp_id in plot_main_exps:
     values = heatmap_norm.loc[exp_id, ['Sharpe', 'Sortino', 'Calmar', 'CVaR(95%)']].values.tolist()
     values += values[:1]
     ax.plot(angles, values, 'o-', linewidth=2,
-            color=ABLATION_COLORS.get(exp_id, '#888'), label=exp_id, alpha=0.8)
+            color=ABLATION_COLORS.get(exp_id, '#888'), label=get_display_name(exp_id), alpha=0.8)
     ax.fill(angles, values, alpha=0.08, color=ABLATION_COLORS.get(exp_id, '#888'))
 
 ax.set_xticks(angles[:-1])
@@ -1344,7 +1340,7 @@ for exp_id in exp_ids:
     cum = (1 + _mean_cumret(ablation_results, exp_id, 'test')).cumprod()
     lw  = 2.5 if exp_id in MAIN_EXPS else 1.2
     ls  = '-'  if exp_id in MAIN_EXPS else '--'
-    cum.plot(ax=ax1, label=exp_id.replace('_', ' '),
+    cum.plot(ax=ax1, label=get_display_name(exp_id),
              color=ABLATION_COLORS.get(exp_id, '#888'), linewidth=lw, linestyle=ls)
 ax1.axhline(1.0, color='gray', linestyle=':', linewidth=0.8)
 ax1.set_ylabel('Cumulative Return', fontsize=11)
@@ -1356,7 +1352,7 @@ for exp_id in plot_main_exps:
     mean_ret = _mean_cumret(ablation_results, exp_id, 'test')
     drawdown, _ = _compute_drawdown(mean_ret.values)
     pd.Series(drawdown, index=mean_ret.index).plot(
-        ax=ax2, label=exp_id.replace('_', ' '),
+        ax=ax2, label=get_display_name(exp_id),
         color=ABLATION_COLORS.get(exp_id, '#888'), linewidth=1.8
     )
 ax2.axhline(0, color='gray', linestyle=':', linewidth=0.8)
@@ -1371,7 +1367,7 @@ print('Saved: ablation_results_thesis/cumret_drawdown.png')
 
 
 # -------------------- New Cell --------------------
-def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_test_results=None):
+def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, plot_main_exps, comparison_ids, stat_test_results=None):
     period_lower = period.lower()
     period_label = 'Testing' if period == 'Test' else 'Training'
 
@@ -1444,7 +1440,7 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_t
     for exp_id in plot_main_exps:
         mean_ret = _mean_cumret(ablation_results, exp_id, period_lower)
         (1 + mean_ret).cumprod().plot(
-            ax=ax_cum, label=exp_id.replace('_', ' '),
+            ax=ax_cum, label=get_display_name(exp_id),
             color=ABLATION_COLORS.get(exp_id, '#888'), linewidth=1.8
         )
     ax_cum.axhline(1.0, color='gray', linestyle='--', linewidth=0.8)
@@ -1507,8 +1503,8 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_t
     print(f'Saved: {fname}')
 
 
-plot_dashboard('Test',  ablation_results, summary_df, exp_ids, colors, stat_test_results=stat_df)
-plot_dashboard('Train', ablation_results, summary_df, exp_ids, colors, stat_test_results=stat_df)
+plot_dashboard('Test',  ablation_results, summary_df, exp_ids, colors, plot_main_exps, comparison_ids, stat_test_results=stat_df)
+plot_dashboard('Train', ablation_results, summary_df, exp_ids, colors, plot_main_exps, comparison_ids, stat_test_results=stat_df)
 
 print('\n✅ Ablation Study THESIS-READY Selesai!')
 print('Outputs saved to ablation_results_thesis/:')
@@ -1542,11 +1538,8 @@ SEED_FOR_XAI = 42
 model_xai = SAC.load(f'ablation_E2_NoMarket_seed{SEED_FOR_XAI}')
 
 FEATURE_NAMES = [
-    'Cent.Std x10',
-    'Cent.Mean x10',
-    'MST.Dist x0.1',
-    'Max.Cent',
-    'Net.Density'
+    'Cent.Std x10', 'Cent.Mean x10', 'MST.Dist x0.1', 'Max.Cent', 'Net.Density',
+    'Clustering x10', 'Path.Len x0.1', 'Modularity', 'Spectral.Gap', 'Betw.Mean x10'
 ]
 
 # ---- Kumpulkan observations & gamma dari test set ----
@@ -1597,9 +1590,10 @@ try:
             results.append(float(np.clip(action[0], -5.0, 5.0)) + GAMMA_CENTER)
         return np.array(results)
 
+    SHAP_NSAMPLES = 200  # Lebih akurat dari 100
     background  = obs_array[:50]
     explainer   = shap.KernelExplainer(predict_gamma, background)
-    shap_values = explainer.shap_values(obs_array[:100], nsamples=100)
+    shap_values = explainer.shap_values(obs_array[:100], nsamples=SHAP_NSAMPLES)
 
     # --- Summary Plot ---
     fig = plt.figure(figsize=(10, 5))
