@@ -982,9 +982,9 @@ for exp_id in ALL_IDS:
     test_metrics  = [calculate_all_metrics(ablation_results[exp_id]['test'][s],  CVAR_LEVEL) for s in SEEDS]
 
     if exp_id in ['Classic-MV']:
-        feature_desc = ['Standard Baseline']
+        feature_desc = ['Standard Baseline (Deterministic)']
     elif config.get('static_gamma') is not None:
-        feature_desc = [f'Static Gamma {config["static_gamma"]}']
+        feature_desc = [f'Static Gamma {config["static_gamma"]} (Deterministic)']
     else:
         feature_desc  = (['Network(5)'] if config['use_network'] else [])
         feature_desc += (['Market(4)']  if config['use_market']  else [])
@@ -1381,14 +1381,21 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_t
     tbl_data = []
     for rank, (exp_id, row) in enumerate(ranked_df.iterrows(), 1):
         p = period
+        
+        # Helper untuk format nilai (sembunyikan ±0.000 jika deterministik)
+        def _fmt(m_key, s_key, prec=3):
+            m, s = row[m_key], row[s_key]
+            if s < 1e-6: return f"{m:.{prec}f}"
+            return f"{m:.{prec}f}±{s:.{prec}f}"
+
         tbl_data.append([
             exp_id,
             row['Features'],
             int(row['Obs Dim']),
-            f"{row[f'SharpeRatio_{p}_Mean']:.3f}±{row[f'SharpeRatio_{p}_Std']:.3f}",
-            f"{row[f'SortinoRatio_{p}_Mean']:.3f}±{row[f'SortinoRatio_{p}_Std']:.3f}",
-            f"{row[f'CalmarRatio_{p}_Mean']:.3f}±{row[f'CalmarRatio_{p}_Std']:.3f}",
-            f"{row[f'CVaR95pct_{p}_Mean']:.4f}±{row[f'CVaR95pct_{p}_Std']:.4f}",
+            _fmt(f'SharpeRatio_{p}_Mean', f'SharpeRatio_{p}_Std', 3),
+            _fmt(f'SortinoRatio_{p}_Mean', f'SortinoRatio_{p}_Std', 3),
+            _fmt(f'CalmarRatio_{p}_Mean', f'CalmarRatio_{p}_Std', 3),
+            _fmt(f'CVaR95pct_{p}_Mean', f'CVaR95pct_{p}_Std', 4),
             f'#{rank}'
         ])
 
