@@ -723,7 +723,8 @@ class LearningCurveCallback(BaseCallback):
 
 
 # Storage untuk learning curves semua seed & config
-learning_curves = {}  # key: (exp_id, seed) → LearningCurveCallback
+if 'learning_curves' not in globals():
+    learning_curves = {}  # key: (exp_id, seed) → LearningCurveCallback
 
 print('LearningCurveCallback defined.')
 print('Learning curves akan disimpan di learning_curves[(exp_id, seed)]')
@@ -825,7 +826,8 @@ sac_kwargs = {
     'gamma'          : 0.99,
 }
 
-trained_model_paths = {}
+if 'trained_model_paths' not in globals():
+    trained_model_paths = {}
 
 sep = '=' * 60
 for exp_id, config in ABLATION_CONFIGS.items():
