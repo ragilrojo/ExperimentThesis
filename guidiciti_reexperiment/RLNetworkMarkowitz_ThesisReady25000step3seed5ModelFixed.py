@@ -1058,7 +1058,7 @@ def get_mean_returns(exp_id, period='test'):
     return np.mean(stacked, axis=0)
 
 
-stat_results = []
+stat_records = []
 
 proposed_rets = get_mean_returns(proposed_id)
 
@@ -1083,7 +1083,7 @@ for comp_id in comparison_ids:
         stat, pval, is_sig, conclusion = np.nan, np.nan, False, f'ERROR: {e}'
 
     print(f'{comp_id:<25} {stat:>10.3f} {pval:>12.4f} {"YA ✓" if is_sig else "TIDAK ✗":>12} {conclusion:>30}')
-    stat_results.append({
+    stat_records.append({
         'Proposed'   : proposed_id,
         'Compared_to': comp_id,
         'Statistic'  : stat,
@@ -1118,7 +1118,7 @@ for comp_id in LOO_EXPS[1:]:  # skip E2_NoMarket itself
 
     print(f'{comp_id:<25} {np.mean(proposed_sharpes):>16.4f} {np.mean(comp_sharpes):>16.4f} '
           f'{pval:>10.4f} {"YA ✓" if is_sig else "TIDAK ✗":>12}')
-    stat_results.append({
+    stat_records.append({
         'Proposed'   : proposed_id,
         'Compared_to': comp_id,
         'Statistic'  : np.nan,
@@ -1127,7 +1127,7 @@ for comp_id in LOO_EXPS[1:]:  # skip E2_NoMarket itself
         'Conclusion' : 'Sharpe pair test',
     })
 
-stat_df = pd.DataFrame(stat_results)
+stat_df = pd.DataFrame(stat_records)
 stat_df.to_csv('ablation_results_thesis/statistical_tests.csv', index=False)
 print('\nSaved: ablation_results_thesis/statistical_tests.csv')
 
@@ -1351,7 +1351,7 @@ print('Saved: ablation_results_thesis/cumret_drawdown.png')
 
 
 # -------------------- New Cell --------------------
-def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_df=None):
+def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_test_results=None):
     period_lower = period.lower()
     period_label = 'Testing' if period == 'Test' else 'Training'
 
@@ -1429,12 +1429,12 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_d
     ax_cum.legend(fontsize=8, ncol=4)
 
     # Panel 7: Statistical test summary (Testing only)
-    if period == 'Test' and stat_df is not None:
+    if period == 'Test' and stat_test_results is not None:
         ax_stat = fig.add_subplot(gs[3, :2])
         ax_stat.axis('off')
-        sig_results = stat_df[stat_df['Significant'] == True]
+        sig_results = stat_test_results[stat_test_results['Significant'] == True]
         stat_text = f'UJI STATISTIK: E2_NoMarket vs Baseline\n(α={STAT_ALPHA}, Wilcoxon Signed-Rank)\n\n'
-        for _, row in stat_df[stat_df['Compared_to'].isin(comparison_ids)].iterrows():
+        for _, row in stat_test_results[stat_test_results['Compared_to'].isin(comparison_ids)].iterrows():
             mark = '✓*' if row['Significant'] else '  '
             stat_text += f'{mark} vs {row["Compared_to"]}: p={row["p_value"]:.4f}\n'
         ax_stat.text(0.01, 0.95, stat_text, transform=ax_stat.transAxes,
@@ -1444,7 +1444,7 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_d
 
     # Panel 8: Interpretasi Otomatis
     if period == 'Test':
-        ax_interp = fig.add_subplot(gs[3, 2:] if stat_df is not None else gs[3, :])
+        ax_interp = fig.add_subplot(gs[3, 2:] if stat_test_results is not None else gs[3, :])
         ax_interp.axis('off')
 
         best_sharpe  = summary_df['SharpeRatio_Test_Mean'].idxmax()
@@ -1480,8 +1480,8 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, stat_d
     print(f'Saved: {fname}')
 
 
-plot_dashboard('Test',  ablation_results, summary_df, exp_ids, colors, stat_df=stat_df)
-plot_dashboard('Train', ablation_results, summary_df, exp_ids, colors, stat_df=stat_df)
+plot_dashboard('Test',  ablation_results, summary_df, exp_ids, colors, stat_test_results=stat_df)
+plot_dashboard('Train', ablation_results, summary_df, exp_ids, colors, stat_test_results=stat_df)
 
 print('\n✅ Ablation Study THESIS-READY Selesai!')
 print('Outputs saved to ablation_results_thesis/:')
