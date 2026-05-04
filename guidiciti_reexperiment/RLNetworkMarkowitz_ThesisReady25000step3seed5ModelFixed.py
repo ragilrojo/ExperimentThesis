@@ -746,16 +746,36 @@ class AblationStrategy:
             self.last_gamma = gamma_center
 
     def compute_weights(self, returns_window, port_val=1.0, step_idx=None):
+        """
+        Hitung bobot portofolio. Menggunakan cache jika tersedia untuk mempercepat backtest.
+        """
+        cached_data = None
+        if self.global_cache is not None and step_idx is not None and step_idx in self.global_cache:
+            cached_data = self.global_cache[step_idx]
+
         if self.is_static:
             self.last_gamma = self.config['static_gamma']
         else:
-            obs, _, _ = build_observation(returns_window, self.config, port_val=port_val - 1.0)
+            # Gunakan cache untuk build_observation agar identik dengan training & cepat
+            if cached_data is not None:
+                obs, _, _ = build_observation(
+                    returns_window, 
+                    self.config, 
+                    port_val=port_val - 1.0,
+                    nw_feat_raw=cached_data['nw_feat_full'],
+                    corr_f=cached_data['corr_f']
+                )
+            else:
+                obs, _, _ = build_observation(returns_window, self.config, port_val=port_val - 1.0)
+            
             action, _ = self.model.predict(obs, deterministic=True)
             self.last_gamma = float(np.clip(action[0], -5.0, 5.0)) + self.gamma_center
 
-        if self.global_cache is not None and step_idx is not None and step_idx in self.global_cache:
-            c = self.global_cache[step_idx]
-            return fast_centrality_weights(c['cov_f'], c['cent_vec'], c['mu'], self.last_gamma)
+        if cached_data is not None:
+            # Gunakan solver cepat dengan data cached
+            return fast_centrality_weights(cached_data['cov_f'], cached_data['cent_vec'], cached_data['mu'], self.last_gamma)
+        
+        # Fallback ke re-compute penuh jika tidak ada di cache
         return get_centrality_weights(returns_window, gamma=self.last_gamma)
 
 
