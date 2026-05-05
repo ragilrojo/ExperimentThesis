@@ -21,8 +21,8 @@ ABLATION_CONFIGS = {
     'Comp_Static_Gamma1' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 1.0},
     'Comp_Static_Gamma2' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 2.0},
 
-    # --- Proposed: E2_NoMarket (Full Network Features, SAC Dynamic) ---
-    'E2_NoMarket'        : {'use_network': True,  'use_market': False, 'extra_features': []},
+    # --- Proposed: E2 (Optimal Features) ---
+    'E2'                 : {'use_network': True,  'use_market': True,  'extra_features': []},
 }
 
 import pandas as pd
@@ -266,20 +266,15 @@ def calculate_all_metrics(ret_series, cvar_level=0.95, periods_per_year=252):
 # ────────────────────────────────────────────────────────────────
 
 ABLATION_COLORS = {
-    'E2_NoMarket'        : '#FF9800',
+    'E2'                 : '#2196F3',
     'Comp_Static_Gamma0' : '#9E9E9E',
     'Comp_Static_Gamma1' : '#795548',
     'Comp_Static_Gamma2' : '#607D8B',
     'Classic-MV'         : '#9C27B0',
-    'E2_NoCentStd'       : '#FFAB91',
-    'E2_NoCentMean'      : '#FF8A65',
-    'E2_NoMSTDist'       : '#FF7043',
-    'E2_NoMaxCent'       : '#F4511E',
-    'E2_NoDensity'       : '#E64A19',
 }
 
 MAIN_EXPS = ['Comp_Static_Gamma0', 'Comp_Static_Gamma1', 'Comp_Static_Gamma2',
-             'E2_NoMarket', 'Classic-MV']
+             'E2', 'Classic-MV']
 
 METRIC_KEY = {
     'Sharpe Ratio' : 'SharpeRatio',
@@ -357,55 +352,58 @@ print('Core functions + 4 metrik evaluasi + visualisation helpers defined.')
 # -------------------- New Cell -------------------
 
 def compute_network_features(returns_window):
-    """5 network features dari MST. MST dibangun sekali, dipakai ulang."""
+    """Optimal network features dari MST."""
     T, N = returns_window.shape
     corr_f  = apply_rmt_filter(returns_window)
-    # 1. Network Density (standard undirected)
-    upper_idx = np.triu_indices(N, k=1)
-    density   = np.sum(np.abs(corr_f[upper_idx]) > 0.1) / (N * (N - 1) / 2) if N > 1 else 0.0
     
-    # 2. MST and Core Features
     mst, cent_vec = _build_mst_centrality(N, corr_f)
     mst_dist = sum(d['weight'] for _, _, d in mst.edges(data=True))
-    
-    # --- FITUR BARU (Thesis Expansion) ---
-    # 3. Clustering Coefficient (Sistemik)
-    avg_clustering = nx.average_clustering(mst)
-    # 4. Average Path Length (Shock Propagation Speed)
-    avg_path_len = nx.average_shortest_path_length(mst)
-    # 5. Modularity Score (Community/Sektoral)
-    comm = list(community.greedy_modularity_communities(mst))
-    mod_score = community.modularity(mst, comm)
-    # 6. Spectral Gap / Algebraic Connectivity (Robustness)
     spectral_gap = nx.algebraic_connectivity(mst)
-    # 7. Betweenness Centrality (Bridge Assets)
-    bet_cent = nx.betweenness_centrality(mst)
-    bet_mean = np.mean(list(bet_cent.values()))
 
     return np.array([
-        np.std(cent_vec)  * 10,  # 0: Cent.Std
-        np.mean(cent_vec) * 10,  # 1: Cent.Mean
-        mst_dist          * 0.1, # 2: MST.Dist
-        np.max(cent_vec),        # 3: Max.Cent
-        density,                 # 4: Net.Density
-        avg_clustering    * 10,  # 5: Clustering
-        avg_path_len      * 0.1, # 6: Path.Length
-        mod_score,               # 7: Modularity
-        spectral_gap,            # 8: Spectral.Gap
-        bet_mean          * 10   # 9: Betweenness.Mean
+        mst_dist          * 0.1, # 0: MST.Dist
+        spectral_gap,            # 1: Spectral.Gap
     ], dtype=np.float32), corr_f, cent_vec
 
 
 def compute_market_features(returns_window, port_val=0.0):
-    short_ret  = returns_window.iloc[-5:].mean().mean()
-    long_ret   = returns_window.mean().mean()
-    momentum   = short_ret - long_ret
-    recent_vol = returns_window.iloc[-5:].std().mean()
+    """
+    Fitur market optimal.
+    """
+    arr = returns_window.values  # shape: (T, N)
+    T, N = arr.shape
+
+    # ── Volatility Regime ──────────────────────────────────────
+    window_5  = max(1, min(5, T))
+    window_20 = max(1, min(20, T))
+
+    rolling_vol_5  = arr[-window_5:].std(axis=0).mean()
+    rolling_vol_20 = arr[-window_20:].std(axis=0).mean()
+    vol_ratio      = rolling_vol_5 / (rolling_vol_20 + 1e-8)
+
+    # ── Momentum Signal ────────────────────────────────────────
+    mom_5d    = arr[-window_5:].mean(axis=0).mean()   # cross-asset mean return 5d
+    mom_20d   = arr[-window_20:].mean(axis=0).mean()  # cross-asset mean return 20d
+    mom_cross = mom_5d - mom_20d                       # positive = momentum improving
+
+    # ── Market Breadth ─────────────────────────────────────────
+    ma_20       = arr[-window_20:].mean(axis=0)       # MA-20 per aset
+    ret_5d_per  = arr[-window_5:].mean(axis=0)        # avg return 5d per aset
+    pct_uptrend = float(np.mean(ret_5d_per > ma_20))  # 0.0 – 1.0
+
     return np.array([
-        short_ret  * 100,
-        momentum   * 100,
-        recent_vol * 100,
-        port_val
+        # Volatility Regime (x100 untuk scale ke range ~0.1–5)
+        rolling_vol_5  * 100,
+        rolling_vol_20 * 100,
+        vol_ratio,
+
+        # Momentum (x100 untuk scale)
+        mom_5d    * 100,
+        mom_20d   * 100,
+        mom_cross * 100,
+
+        # Market Breadth
+        pct_uptrend,
     ], dtype=np.float32)
 
 
@@ -486,8 +484,7 @@ def normalize_features(nw_feat):
 feat_matrix = feat_matrix_train
 
 # --- Diagnosis Variasi Fitur Network ---
-feat_names_nw = ['Cent.Std x10', 'Cent.Mean x10', 'MST.Dist x0.1', 
-                  'Max.Cent', 'Net.Density']
+feat_names_nw = ['MST.Dist x0.1', 'Spectral.Gap']
 
 print('\n=== Diagnosis Variasi Fitur Network (Training Set) ===')
 print(f'{"Fitur":<20} {"Min":>8} {"Max":>8} {"Mean":>8} {"Std":>8} {"CV%":>8}')
@@ -513,15 +510,11 @@ def build_observation(returns_window, config, port_val=0.0, nw_feat_raw=None, co
     # 1. Normalisasi Fitur Network (Single Path)
     nw_feat = normalize_features(nw_feat_raw)
     
-    # 2. Drop fitur jika sedang melakukan ablation study
-    if 'drop_nw_idx' in config:
-        nw_feat = np.delete(nw_feat, config['drop_nw_idx'])
-        
-    # 3. Fitur Market & Extra
+    # 2. Fitur Market & Extra
     mkt_feat   = compute_market_features(returns_window, port_val)
     extra_feat = compute_extra_features(returns_window, corr_f, config['extra_features'])
     
-    # 4. Gabungkan semua bagian
+    # 3. Gabungkan semua bagian
     parts = []
     if config['use_network']: parts.append(nw_feat)
     if config['use_market']:  parts.append(mkt_feat)
@@ -534,8 +527,9 @@ def build_observation(returns_window, config, port_val=0.0, nw_feat_raw=None, co
 def get_obs_dim(config):
     dim = 0
     if config['use_network']:
-        dim += (9 if 'drop_nw_idx' in config else 10)
-    if config['use_market']:  dim += 4
+        dim += 2
+    if config['use_market']:
+        dim += 7
     dim += len(config['extra_features'])
     return max(dim, 1)
 
@@ -575,8 +569,7 @@ def build_caches_from_global(config, global_cache):
 print('build_caches_from_global() siap digunakan.')
 
 # Feature Correlation Analysis (Extended Network Features)
-feat_names = ['Cent.Std', 'Cent.Mean', 'MST.Dist', 'Max.Cent', 'Net.Density',
-              'Clustering', 'Path.Len', 'Modularity', 'Spectral.Gap', 'Betw.Mean']
+feat_names = ['MST.Dist', 'Spectral.Gap']
 
 all_features = []
 # FIX: Filter hanya menggunakan data training untuk analisis korelasi
@@ -651,17 +644,6 @@ class AblationPortfolioEnv(gym.Env):
         # Gunakan offset agar sinkron dengan GLOBAL_CACHE (train vs test)
         global_idx = self.data_start_offset + self.current_step
         obs = self.obs_cache[global_idx].copy()
-        
-        if self.config['use_market']:
-            # FIX: Hitung offset dinamis untuk fitur network (bisa 4 atau 5)
-            nw_offset = 0
-            if self.config['use_network']:
-                nw_offset = (4 if 'drop_nw_idx' in self.config else 5)
-            
-            # port_val adalah fitur ke-4 (index 3) dalam blok market
-            port_val_idx = nw_offset + 3
-            if port_val_idx < len(obs):
-                obs[port_val_idx] = self.port_val - 1.0
         return obs
 
     def _normalize_reward(self, r):
@@ -1088,7 +1070,7 @@ print(f'Alpha = {STAT_ALPHA} | Menggunakan data: Testing Period')
 print('=' * 70)
 
 # Proposed method vs semua baseline & static gamma
-proposed_id = 'E2_NoMarket'
+proposed_id = 'E2'
 comparison_ids = ['Comp_Static_Gamma0', 'Comp_Static_Gamma1', 'Comp_Static_Gamma2',
                   'Classic-MV']
 
@@ -1163,7 +1145,7 @@ window_ids = [
 ]
 
 # Evaluasi hanya untuk proposed vs 3 baseline utama
-wf_ids = ['E2_NoMarket', 'Comp_Static_Gamma0', 'Classic-MV']
+wf_ids = ['E2', 'Comp_Static_Gamma0', 'Classic-MV']
 wf_metric = 'Sharpe Ratio'
 
 wf_rows = []
@@ -1221,9 +1203,9 @@ print('\nSaved: ablation_results_thesis/walkforward_robustness.png')
 print('Saved: ablation_results_thesis/walkforward_results.csv')
 
 # Consistency score: apakah proposed selalu outperform Classic-MV di setiap periode?
-print('\nKonsistensi E2_NoMarket vs Classic-MV per sub-periode:')
+print('\nKonsistensi E2 vs Classic-MV per sub-periode:')
 for period_label, _ in window_ids:
-    proposed_sharpe = wf_df[(wf_df['Period']==period_label) & (wf_df['Experiment']=='E2_NoMarket')]['Sharpe_Mean'].values
+    proposed_sharpe = wf_df[(wf_df['Period']==period_label) & (wf_df['Experiment']=='E2')]['Sharpe_Mean'].values
     cmv_sharpe = wf_df[(wf_df['Period']==period_label) & (wf_df['Experiment']=='Classic-MV')]['Sharpe_Mean'].values
     if len(proposed_sharpe) > 0 and len(cmv_sharpe) > 0:
         delta = proposed_sharpe[0] - cmv_sharpe[0]
@@ -1456,7 +1438,7 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, plot_m
         ax_stat = fig.add_subplot(gs[3, :2])
         ax_stat.axis('off')
         sig_results = stat_test_results[stat_test_results['Significant'] == True]
-        stat_text = f'UJI STATISTIK: E2_NoMarket vs Baseline\n(α={STAT_ALPHA}, Wilcoxon Signed-Rank)\n\n'
+        stat_text = f'UJI STATISTIK: E2 vs Baseline\n(α={STAT_ALPHA}, Wilcoxon Signed-Rank)\n\n'
         for _, row in stat_test_results[stat_test_results['Compared_to'].isin(comparison_ids)].iterrows():
             mark = '✓*' if row['Significant'] else '  '
             stat_text += f'{mark} vs {row["Compared_to"]}: p={row["p_value"]:.4f}\n'
@@ -1488,7 +1470,7 @@ def plot_dashboard(period, ablation_results, summary_df, exp_ids, colors, plot_m
             f'  Best Calmar Ratio   : {best_calmar} = {summary_df.loc[best_calmar,  "CalmarRatio_Test_Mean"]:.4f}\n'
             f'  Best CVaR (95%)     : {best_cvar} = {summary_df.loc[best_cvar, "CVaR95pct_Test_Mean"]:.5f} (terkecil)\n\n'
             '  PERFORMA vs Static Gamma0 (Δ):\n'
-            f'  Sharpe: {delta("E2_NoMarket","Sharpe Ratio"):+.4f} | Sortino: {delta("E2_NoMarket","Sortino Ratio"):+.4f}\n\n'
+            f'  Sharpe: {delta("E2","Sharpe Ratio"):+.4f} | Sortino: {delta("E2","Sortino Ratio"):+.4f}\n\n'
             ''
         )
 
@@ -1535,11 +1517,17 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import SAC
 
 SEED_FOR_XAI = 42
-model_xai = SAC.load(f'ablation_E2_NoMarket_seed{SEED_FOR_XAI}')
+model_xai = SAC.load(f'ablation_E2_seed{SEED_FOR_XAI}')
 
 FEATURE_NAMES = [
-    'Cent.Std x10', 'Cent.Mean x10', 'MST.Dist x0.1', 'Max.Cent', 'Net.Density',
-    'Clustering x10', 'Path.Len x0.1', 'Modularity', 'Spectral.Gap', 'Betw.Mean x10'
+    # Network (2)
+    'MST.Dist x0.1', 'Spectral.Gap',
+    # Volatility Regime (3)
+    'VolShort x100', 'VolLong x100', 'Vol.Ratio',
+    # Momentum (3)
+    'Mom5d x100', 'Mom20d x100', 'MomCross x100',
+    # Market Breadth (1)
+    'Pct.Uptrend',
 ]
 
 # ---- Kumpulkan observations & gamma dari test set ----
@@ -1548,7 +1536,7 @@ gamma_list = []
 
 for i in range(SET_WINDOW, len(ret_test)):
     global_idx = len(ret_train) + i
-    config = ABLATION_CONFIGS['E2_NoMarket']
+    config = ABLATION_CONFIGS['E2']
     
     # Gunakan cache jika tersedia untuk menjamin konsistensi 100% dengan backtest
     if global_idx in GLOBAL_CACHE:
@@ -1568,7 +1556,7 @@ for i in range(SET_WINDOW, len(ret_test)):
     action, _ = model_xai.predict(obs_raw, deterministic=True)
     gamma_list.append(float(np.clip(action[0], -5.0, 5.0)) + GAMMA_CENTER)
 
-obs_array   = np.array(obs_list)    # shape: (N, 5)
+obs_array   = np.array(obs_list)    # shape: (N, 20)
 gamma_array = np.array(gamma_list)  # shape: (N,)
 
 print(f'Observations collected: {len(obs_array)}')
@@ -1599,7 +1587,7 @@ try:
     fig = plt.figure(figsize=(10, 5))
     shap.summary_plot(shap_values, obs_array[:100],
                       feature_names=FEATURE_NAMES, show=False)
-    plt.title('SHAP Feature Importance — Policy SAC E2_NoMarket',
+    plt.title('SHAP Feature Importance — Policy SAC E2',
               fontsize=12, fontweight='bold')
     plt.tight_layout()
     plt.savefig('ablation_results_thesis/xai_shap_summary.png',
@@ -1611,7 +1599,7 @@ try:
     shap.summary_plot(shap_values, obs_array[:100],
                       feature_names=FEATURE_NAMES,
                       plot_type='bar', show=False)
-    plt.title('SHAP Mean |Value| — Policy SAC E2_NoMarket',
+    plt.title('SHAP Mean |Value| — Policy SAC E2',
               fontsize=12, fontweight='bold')
     plt.tight_layout()
     plt.savefig('ablation_results_thesis/xai_shap_bar.png',
@@ -1652,7 +1640,7 @@ fig, ax = plt.subplots(figsize=(8, 4))
 bars = ax.barh(names_sorted, vals_sorted, color='#FF9800', edgecolor='white')
 ax.bar_label(bars, fmt='%.4f', padding=3, fontsize=9)
 ax.set_xlabel('Mean |DeltaGamma| setelah Permutasi', fontsize=10)
-ax.set_title('Permutation Feature Importance\nPolicy SAC E2_NoMarket (Test Set)',
+ax.set_title('Permutation Feature Importance\nPolicy SAC E2 (Test Set)',
              fontsize=12, fontweight='bold')
 ax.invert_yaxis()
 plt.tight_layout()
@@ -1718,7 +1706,7 @@ print('PDP saved.')
 # PHASE XAI — 5. Gamma Distribution & Feature Correlation
 # ================================================================
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-fig.suptitle('XAI: Policy Output Analysis — E2_NoMarket',
+fig.suptitle('XAI: Policy Output Analysis — E2',
              fontsize=12, fontweight='bold')
 
 # --- (a) Distribusi Gamma ---
