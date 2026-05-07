@@ -5,7 +5,7 @@ Thesis-Ready Version — Multi-Seed SAC + Ablation Study + XAI Analysis
 
 # ================================================================
 # INSTALASI (jalankan sekali jika belum terinstall)
-# %pip install stable_baselines3[extra] scipy shap
+# %pip install stable_baselines3[extra] scipy shap optuna
 # ================================================================
 
 # ================================================================
@@ -49,6 +49,7 @@ from gymnasium import spaces
 from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import BaseCallback
 from networkx.algorithms import community
+import optuna
 
 warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8-whitegrid')
@@ -809,11 +810,63 @@ def run_backtest_baselines(data, assets, window=30):
 print('Backtest engine defined.')
 
 
+sep = '=' * 60
+
+# ================================================================
+# PHASE 5.5: HYPERPARAMETER TUNING (OPTUNA) — Focus on E2
+# ================================================================
+print(f'\n{sep}')
+print('=== Phase 5.5: Hyperparameter Tuning (Optuna) for E2 ===')
+print('Tuning: learning_rate, buffer_size, ent_coef')
+
+def objective(trial):
+    # 1. Sample Hyperparameters
+    lr  = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
+    buf = trial.suggest_categorical('buffer_size', [30000, 50000, 100000])
+    ent = trial.suggest_categorical('ent_coef', ['auto', 0.01, 0.05, 0.1])
+    
+    # 2. Setup Env for E2
+    config = ABLATION_CONFIGS['E2']
+    obs_cache, opt_cache = build_caches_from_global(config, GLOBAL_CACHE)
+    env = AblationPortfolioEnv(
+        ret_train, obs_cache, opt_cache, config,
+        window_size=SET_WINDOW, gamma_center=GAMMA_CENTER
+    )
+    
+    # 3. Model with Trial Params
+    model = SAC(
+        'MlpPolicy', env, verbose=0, seed=42,
+        learning_rate=lr, buffer_size=buf, ent_coef=ent,
+        batch_size=256, train_freq=1, gradient_steps=1
+    )
+    
+    # 4. Short Training for Tuning (Faster than full training)
+    model.learn(total_timesteps=10000)
+    
+    # 5. Evaluate on Training Data (Internal Reward)
+    eval_rets = []
+    obs, _ = env.reset()
+    done = False
+    while not done:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, _, _ = env.step(action)
+        eval_rets.append(reward)
+    
+    return np.mean(eval_rets)
+
+# Run Study
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=10) # 10 trials as demonstration, adjust as needed
+
+best_params = study.best_params
+print(f'\nBest Params for E2: {best_params}')
+print(f'Best Trial Value: {study.best_value:.4f}')
+
 # ================================================================
 # PHASE 6: TRAINING — Multi-Seed SAC
 # ================================================================
 
-sac_kwargs = {
+sac_kwargs_default = {
     'policy'         : 'MlpPolicy',
     'learning_rate'  : 3e-4,
     'buffer_size'    : 50000,
@@ -827,7 +880,6 @@ sac_kwargs = {
 }
 
 trained_model_paths = {}
-sep = '=' * 60
 
 for exp_id, config in ABLATION_CONFIGS.items():
     print(f'\n{sep}')
@@ -848,8 +900,14 @@ for exp_id, config in ABLATION_CONFIGS.items():
             window_size=SET_WINDOW, gamma_center=GAMMA_CENTER,
         )
 
+        # Gunakan best_params jika ini adalah model E2, jika tidak gunakan default
+        current_kwargs = sac_kwargs_default.copy()
+        if exp_id == 'E2':
+            current_kwargs.update(best_params)
+            print(f'    Using Tuned Params: {best_params}')
+
         lc_callback = LearningCurveCallback()
-        model = SAC(env=env, seed=seed, verbose=0, **sac_kwargs)
+        model = SAC(env=env, seed=seed, verbose=0, **current_kwargs)
         model.learn(total_timesteps=TRAIN_STEPS, callback=lc_callback, progress_bar=True)
 
         learning_curves[(exp_id, seed)] = lc_callback
