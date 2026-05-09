@@ -33,7 +33,7 @@ ABLATION_CONFIGS = {
 }
 
 # Metrik utama yang dievaluasi dalam tesis
-FOUR_METRICS = ['Sharpe Ratio', 'Sortino Ratio', 'Calmar Ratio', 'CVaR (95%)']
+EVAL_METRICS = ['Sharpe Ratio', 'Sortino Ratio', 'Calmar Ratio', 'Ulcer Index']
 
 # ================================================================
 # IMPORTS
@@ -214,6 +214,14 @@ def calculate_cvar(ret_series, confidence=0.95):
     tail_losses = arr[arr <= var]
     return float(-np.mean(tail_losses)) if len(tail_losses) > 0 else 0.0
 
+def calculate_ulcer_index(ret_series):
+    arr = np.array(ret_series)
+    if len(arr) == 0: return 0.0
+    cumulative = (1 + arr).cumprod()
+    peak = np.maximum.accumulate(cumulative)
+    dd = (cumulative - peak) / peak
+    return float(np.sqrt(np.mean(dd**2)))
+
 def calculate_all_metrics(ret_series, cvar_level=0.95, periods_per_year=252):
     arr = np.array(ret_series)
     ann_ret = calculate_annualized_return(arr, periods_per_year)
@@ -230,6 +238,7 @@ def calculate_all_metrics(ret_series, cvar_level=0.95, periods_per_year=252):
         'Ann. Return'     : ann_ret,
         'Ann. Volatility' : ann_vol,
         'Max Drawdown'    : max_dd,
+        'Ulcer Index'     : calculate_ulcer_index(arr),
     }
 
 # ================================================================
@@ -329,7 +338,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
         
         res = {'Experiment': exp_id, 'Features': 'Network(5) + Market(4)' if 'E2' in exp_id else 'Static/Baseline', 'Obs Dim': get_obs_dim(ABLATION_CONFIGS.get(exp_id, {})) if exp_id in ABLATION_CONFIGS else 0}
         
-        for m in FOUR_METRICS:
+        for m in EVAL_METRICS:
             vals = [ms[m] for ms in m_seeds]
             res[f'{m} Mean'] = np.mean(vals)
             res[f'{m} Std'] = np.std(vals)
@@ -341,14 +350,14 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     gs = gridspec.GridSpec(5, 4, height_ratios=[0.5, 1.5, 1.5, 1.5, 1.0])
     
     # Header
-    fig.suptitle(f'{title_prefix}\nEvaluasi 4 Metrik Tesis ({period_name.upper()} PERIOD): Sharpe | Sortino | Calmar | CVaR(95%)\nMulti-Seed: {SEEDS} | TRAIN_STEPS={TRAIN_STEPS}', 
+    fig.suptitle(f'{title_prefix}\nEvaluasi 4 Metrik Tesis ({period_name.upper()} PERIOD): Sharpe | Sortino | Calmar | Ulcer Index\nMulti-Seed: {SEEDS} | TRAIN_STEPS={TRAIN_STEPS}', 
                  fontsize=14, fontweight='bold', y=0.97)
 
     # 1. Summary Table
     ax_table = fig.add_subplot(gs[1, :])
     ax_table.axis('off')
     table_data = []
-    columns = ['Experiment', 'Features', 'Obs\nDim', 'Sharpe\n'+period_name.capitalize(), 'Sortino\n'+period_name.capitalize(), 'Calmar\n'+period_name.capitalize(), 'CVaR(95%)\n'+period_name.capitalize(), 'Rank']
+    columns = ['Experiment', 'Features', 'Obs\nDim', 'Sharpe (↑)\n'+period_name.capitalize(), 'Sortino (↑)\n'+period_name.capitalize(), 'Calmar (↑)\n'+period_name.capitalize(), 'Ulcer Index\n(Mendekati 0)\n'+period_name.capitalize(), 'Rank']
     
     for i, (_, row) in enumerate(df_metrics.iterrows()):
         r = [
@@ -358,7 +367,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
             f"{row['Sharpe Ratio Mean']:.3f}±{row['Sharpe Ratio Std']:.3f}" if row['Sharpe Ratio Std']>1e-4 else f"{row['Sharpe Ratio Mean']:.3f}",
             f"{row['Sortino Ratio Mean']:.3f}±{row['Sortino Ratio Std']:.3f}" if row['Sortino Ratio Std']>1e-4 else f"{row['Sortino Ratio Mean']:.3f}",
             f"{row['Calmar Ratio Mean']:.3f}±{row['Calmar Ratio Std']:.3f}" if row['Calmar Ratio Std']>1e-4 else f"{row['Calmar Ratio Mean']:.3f}",
-            f"{row['CVaR (95%) Mean']:.4f}±{row['CVaR (95%) Std']:.4f}" if row['CVaR (95%) Std']>1e-4 else f"{row['CVaR (95%) Mean']:.4f}",
+            f"{row['Ulcer Index Mean']:.4f}±{row['Ulcer Index Std']:.4f}" if row['Ulcer Index Std']>1e-4 else f"{row['Ulcer Index Mean']:.4f}",
             f"#{i+1}"
         ]
         table_data.append(r)
@@ -373,10 +382,10 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
             cell.set_text_props(color='white', fontweight='bold')
         elif row_idx % 2 == 0:
             cell.set_facecolor('#F0F7FF')
-    ax_table.set_title(f'Rangkuman 4 Metrik Tesis ({period_name.capitalize()}) — Ranked by Sharpe Ratio\nNilai: Mean ± Std across {len(SEEDS)} seeds', fontsize=10, fontweight='bold', pad=10)
+    ax_table.set_title(f'Rangkuman 4 Metrik Tesis ({period_name.capitalize()}) — Ranked by Sharpe Ratio\n[Keterangan] Sharpe, Sortino, Calmar: Semakin besar semakin baik (↑) | Ulcer Index: Semakin mendekati 0 semakin baik\nNilai: Mean ± Std across {len(SEEDS)} seeds', fontsize=10, fontweight='bold', pad=10)
 
     # 2. Bar Charts
-    for i, m in enumerate(FOUR_METRICS):
+    for i, m in enumerate(EVAL_METRICS):
         ax = fig.add_subplot(gs[2, i])
         means = [row[f'{m} Mean'] for _, row in df_metrics.iterrows()]
         stds = [row[f'{m} Std'] for _, row in df_metrics.iterrows()]
@@ -391,7 +400,8 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
                 bars[j].set_edgecolor('gold')
                 bars[j].set_linewidth(2)
 
-        ax.set_title(f'{m} ({period_name.capitalize()})', fontsize=9, fontweight='bold')
+        keterangan = "(mendekati 0 = lebih baik)" if "Drawdown" in m else "(lebih besar = lebih baik)"
+        ax.set_title(f'{m}\n{keterangan}\n({period_name.capitalize()})', fontsize=9, fontweight='bold')
         ax.set_ylabel(f'{m} ({period_name.capitalize()})', fontsize=7)
         ax.tick_params(axis='x', labelsize=6)
         ax.axhline(0, color='black', linewidth=0.5)
@@ -425,8 +435,8 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     interp_text += f"Best Sharpe Ratio   : {best_sharpe} = {df_metrics.iloc[0]['Sharpe Ratio Mean']:.4f}\n"
     interp_text += f"Best Sortino Ratio  : {df_metrics.sort_values('Sortino Ratio Mean', ascending=False).iloc[0]['Experiment']} = {df_metrics.sort_values('Sortino Ratio Mean', ascending=False).iloc[0]['Sortino Ratio Mean']:.4f}\n"
     
-    best_cvar_exp = df_metrics.sort_values('CVaR (95%) Mean', ascending=True).iloc[0]['Experiment']
-    interp_text += f"Best CVaR (95%)     : {best_cvar_exp} = {df_metrics.sort_values('CVaR (95%) Mean', ascending=True).iloc[0]['CVaR (95%) Mean']:.5f} (terkecil)\n\n"
+    best_ulcer_exp = df_metrics.sort_values('Ulcer Index Mean', ascending=True).iloc[0]['Experiment']
+    interp_text += f"Best Ulcer Index    : {best_ulcer_exp} = {df_metrics.sort_values('Ulcer Index Mean', ascending=True).iloc[0]['Ulcer Index Mean']:.5f} (terbaik)\n\n"
     
     # Calculate improvement vs baseline
     base_sharpe = df_metrics[df_metrics['Experiment']=='Classic-MV']['Sharpe Ratio Mean'].values[0]
