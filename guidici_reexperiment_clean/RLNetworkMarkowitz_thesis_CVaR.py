@@ -19,17 +19,15 @@ STAT_ALPHA    = 0.05             # significance level untuk uji statistik
 
 # Definisi eksperimen ablation
 ABLATION_CONFIGS = {
-    # --- proposed: E2 (Optimal Features, Calmar Reward) ---
-    'E2'                 : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'calmar'},
-    # --- proposed: E2_CVaR (Optimal Features, CVaR Reward) ---
-    'E2_CVaR'            : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'cvar'},
-    # --- proposed: E2_Omega (Optimal Features, Omega Reward) ---
-    'E2_Omega'           : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'omega'},
+    'E2_Sharpe'          : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'sharpe'},
+    'E2_Sortino'         : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'sortino'},
+    'E2_Calmar'          : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'calmar'},
+    'E2_Ulcer'           : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'ulcer'},
     
     # --- Baseline: Static Gamma ---
     'Comp_Static_Gamma0' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 0.0},
-    'Comp_Static_Gamma2' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 2.0},
     'Comp_Static_Gamma1' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 1.0},
+    'Comp_Static_Gamma2' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 2.0},
 }
 
 # Metrik utama yang dievaluasi dalam tesis
@@ -246,20 +244,22 @@ def calculate_all_metrics(ret_series, cvar_level=0.95, periods_per_year=252):
 # ================================================================
 
 ABLATION_COLORS = {
-    'E2'                 : '#2196F3',
-    'E2_CVaR'            : '#E91E63',
-    'E2_Omega'           : '#4CAF50',
+    'E2_Sharpe'          : '#FF9800',
+    'E2_Sortino'         : '#9C27B0',
+    'E2_Calmar'          : '#2196F3',
+    'E2_Ulcer'           : '#F44336',
     'Comp_Static_Gamma0' : '#9E9E9E',
     'Comp_Static_Gamma1' : '#795548',
     'Comp_Static_Gamma2' : '#607D8B',
-    'Classic-MV'         : '#9C27B0',
+    'Classic-MV'         : '#3F51B5',
 }
 
 # Label tampilan yang lebih ringkas untuk plot
 DISPLAY_NAMES = {
-    'E2'                 : 'E2 (Calmar)',
-    'E2_CVaR'            : 'E2-CVaR',
-    'E2_Omega'           : 'E2-Omega',
+    'E2_Sharpe'          : 'E2-Sharpe',
+    'E2_Sortino'         : 'E2-Sortino',
+    'E2_Calmar'          : 'E2-Calmar',
+    'E2_Ulcer'           : 'E2-Ulcer',
     'Comp_Static_Gamma0' : 'γ=0 (Static)',
     'Comp_Static_Gamma1' : 'γ=1 (Static)',
     'Comp_Static_Gamma2' : 'γ=2 (Static)',
@@ -302,7 +302,7 @@ def plot_learning_curves(history_dict):
     plt.legend(fontsize=8)
     
     # Add "(CHECK)" label like in the image
-    plt.text(0.5, 1.05, 'E2\n(CHECK)', transform=plt.gca().transAxes, color='red', 
+    plt.text(0.5, 1.05, 'E2_Sharpe\n(CHECK)', transform=plt.gca().transAxes, color='red', 
              fontweight='bold', ha='center', va='bottom', fontsize=9)
     
     plt.tight_layout()
@@ -336,7 +336,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
         rets_df = results_dict[exp_id]
         m_seeds = [calculate_all_metrics(rets_df[s], CVAR_LEVEL) for s in rets_df.columns]
         
-        res = {'Experiment': exp_id, 'Features': 'Network(5) + Market(4)' if 'E2' in exp_id else 'Static/Baseline', 'Obs Dim': get_obs_dim(ABLATION_CONFIGS.get(exp_id, {})) if exp_id in ABLATION_CONFIGS else 0}
+        res = {'Experiment': exp_id, 'Features': 'Network(5) + Market(4)' if str(exp_id).startswith('E2') else 'Static/Baseline', 'Obs Dim': get_obs_dim(ABLATION_CONFIGS.get(exp_id, {})) if exp_id in ABLATION_CONFIGS else 0}
         
         for m in EVAL_METRICS:
             vals = [ms[m] for ms in m_seeds]
@@ -396,7 +396,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
         
         # Highlight E2
         for j, e in enumerate(exps):
-            if e == 'E2':
+            if str(e).startswith('E2'):
                 bars[j].set_edgecolor('gold')
                 bars[j].set_linewidth(2)
 
@@ -412,7 +412,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     for exp_id in exp_ids:
         avg_rets = results_dict[exp_id].mean(axis=1)
         cum_rets = (1 + avg_rets).cumprod()
-        ax_cum.plot(cum_rets, label=get_display_name(exp_id), color=ABLATION_COLORS.get(exp_id, '#777777'), linewidth=2 if 'E2' in exp_id else 1.2)
+        ax_cum.plot(cum_rets, label=get_display_name(exp_id), color=ABLATION_COLORS.get(exp_id, '#777777'), linewidth=2 if str(exp_id).startswith('E2') else 1.2)
     
     ax_cum.axhline(1.0, color='grey', linestyle='--', linewidth=0.8)
     ax_cum.set_title(f'Cumulative Returns — {period_name.capitalize()} Period (Mean across {len(SEEDS)} seeds)', fontsize=10, fontweight='bold')
@@ -424,7 +424,7 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     ax_stat = fig.add_subplot(gs[4, 0:2])
     ax_stat.axis('off')
     stat_text = run_wilcoxon_tests(results_dict, 'Classic-MV')
-    ax_stat.text(0, 1, f"UJI STATISTIK: E2 vs Baseline\n(α=0.05, Wilcoxon Signed-Rank)\n\n {stat_text}", 
+    ax_stat.text(0, 1, f"UJI STATISTIK: E2 Models vs Baseline\n(α=0.05, Wilcoxon Signed-Rank)\n\n {stat_text}", 
                  fontsize=9, family='monospace', bbox=dict(facecolor='#E8F5E9', alpha=0.5, boxstyle='round,pad=1'), va='top')
     ax_stat.set_title('Ringkasan Uji Statistik', fontsize=9, fontweight='bold', loc='left')
 
@@ -440,9 +440,9 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     
     # Calculate improvement vs baseline
     base_sharpe = df_metrics[df_metrics['Experiment']=='Classic-MV']['Sharpe Ratio Mean'].values[0]
-    e2_sharpe = df_metrics[df_metrics['Experiment']=='E2']['Sharpe Ratio Mean'].values[0]
+    e2_sharpe = df_metrics[df_metrics['Experiment']=='E2_Sharpe']['Sharpe Ratio Mean'].values[0] if len(df_metrics[df_metrics['Experiment']=='E2_Sharpe']) > 0 else 0.0
     interp_text += f"PERFORMA vs Classic-MV (Δ):\n"
-    interp_text += f"Sharpe: {e2_sharpe - base_sharpe:+.4f} | Sortino: {df_metrics[df_metrics['Experiment']=='E2']['Sortino Ratio Mean'].values[0] - df_metrics[df_metrics['Experiment']=='Classic-MV']['Sortino Ratio Mean'].values[0]:+.4f}"
+    interp_text += f"Sharpe: {e2_sharpe - base_sharpe:+.4f} | Sortino: {df_metrics[df_metrics['Experiment']=='E2_Sortino']['Sortino Ratio Mean'].values[0] if len(df_metrics[df_metrics['Experiment']=='E2_Sortino']) > 0 else 0.0 - df_metrics[df_metrics['Experiment']=='Classic-MV']['Sortino Ratio Mean'].values[0]:+.4f}"
     
     ax_interp.text(0, 1, interp_text, fontsize=8, family='monospace', bbox=dict(facecolor='#EEF2FF', alpha=0.5, boxstyle='round,pad=1'), va='top')
     ax_interp.set_title('Interpretasi Otomatis', fontsize=9, fontweight='bold', loc='left')
@@ -480,6 +480,7 @@ def plot_shap_analysis(model_path, env, config, exp_id):
 
     explainer = shap.Explainer(predict_action, X[:100])
     shap_values = explainer(X[100:300])
+    shap_values.feature_names = FEATURE_NAMES[:X.shape[1]]
     
     # Summary Plot (Beeswarm)
     plt.figure(figsize=(10, 6))
@@ -595,26 +596,18 @@ class AblationPortfolioEnv(gym.Env):
         if len(arr) < 2:
             raw_reward = port_ret * 100
         else:
-            if reward_type == 'omega':
-                mar = 0.0
-                wins = arr[arr > mar] - mar
-                losses = mar - arr[arr < mar]
-                sum_losses = np.sum(losses)
-                if sum_losses > 1e-8:
-                    omega = np.sum(wins) / sum_losses
-                else:
-                    omega = 10.0
-                raw_reward = float(np.clip(omega, -10.0, 10.0))
-            else:
+            if reward_type == 'sharpe':
+                raw_reward = float(np.clip(calculate_sharpe_ratio(arr), -10.0, 10.0))
+            elif reward_type == 'sortino':
+                raw_reward = float(np.clip(calculate_sortino_ratio(arr), -10.0, 10.0))
+            elif reward_type == 'calmar':
+                raw_reward = float(np.clip(calculate_calmar_ratio(arr), -10.0, 10.0))
+            elif reward_type == 'ulcer':
                 ann_ret = calculate_annualized_return(arr)
-                if reward_type == 'cvar':
-                    risk = calculate_cvar(arr, confidence=CVAR_LEVEL)
-                else: # calmar
-                    dd, _ = _compute_drawdown(arr)
-                    risk = abs(dd.min())
-                
-                denominator = risk if risk > 1e-8 else 1e-8
-                raw_reward = float(np.clip(ann_ret / denominator, -10.0, 10.0))
+                ulcer = calculate_ulcer_index(arr)
+                raw_reward = float(np.clip(ann_ret / ulcer if ulcer > 1e-8 else ann_ret / 1e-8, -10.0, 10.0))
+            else:
+                raw_reward = 0.0
 
         # Reward Normalization
         s = self._rew_stats
@@ -653,8 +646,8 @@ for exp_id, config in ABLATION_CONFIGS.items():
         train_histories[exp_id][seed] = callback.episode_rewards
 
 # Plot Learning Curves for E2
-if 'E2' in train_histories:
-    plot_learning_curves(train_histories['E2'])
+if 'E2_Sharpe' in train_histories:
+    plot_learning_curves(train_histories['E2_Sharpe'])
 
 # 2. Backtest (Train & Test)
 results_test = {}
@@ -715,10 +708,25 @@ print("\nGenerating Final Dashboards...")
 generate_dashboard(results_test, "Ablation Study Final Dashboard — SAC + Network-Markowitz Portfolio", "Testing", "dashboard_testing.png")
 generate_dashboard(results_train, "Ablation Study Final Dashboard — SAC + Network-Markowitz Portfolio", "Training", "dashboard_training.png")
 
-# 4. SHAP Analysis for E2
-if 'E2' in trained_models.keys() or any(k[0]=='E2' for k in trained_models.keys()):
+# 4. SHAP Analysis for the Best Model
+best_exp_id = None
+best_sharpe = -np.inf
+
+for exp_id in ABLATION_CONFIGS.keys():
+    if str(exp_id).startswith('E2') and exp_id in results_test:
+        rets_df = results_test[exp_id]
+        m_seeds = [calculate_all_metrics(rets_df[s], CVAR_LEVEL) for s in rets_df.columns]
+        sharpe_mean = np.mean([ms['Sharpe Ratio'] for ms in m_seeds])
+        if sharpe_mean > best_sharpe:
+            best_sharpe = sharpe_mean
+            best_exp_id = exp_id
+
+if best_exp_id and (best_exp_id, SEEDS[0]) in trained_models:
+    print(f"\nModel paling unggul (best test Sharpe Ratio) adalah {best_exp_id} dengan rata-rata Sharpe: {best_sharpe:.4f}")
     seed0 = SEEDS[0]
-    env_eval = AblationPortfolioEnv(ret_test, ABLATION_CONFIGS['E2'], len(ret_train))
-    plot_shap_analysis(trained_models[('E2', seed0)], env_eval, ABLATION_CONFIGS['E2'], 'E2')
+    env_eval = AblationPortfolioEnv(ret_test, ABLATION_CONFIGS[best_exp_id], len(ret_train))
+    plot_shap_analysis(trained_models[(best_exp_id, seed0)], env_eval, ABLATION_CONFIGS[best_exp_id], best_exp_id)
+else:
+    print("\nTidak dapat menemukan model E2 untuk SHAP analysis.")
 
 print("\nProcessing complete. Files saved in 'ablation_results_thesis/'.")
