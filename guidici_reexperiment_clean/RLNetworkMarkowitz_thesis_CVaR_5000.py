@@ -37,6 +37,8 @@ REWARD_WINDOW = 20
 CVAR_LEVEL    = 0.95
 STAT_ALPHA    = 0.05
 SAVE_IMAGES   = True   # Set to True to save images in a folder
+MONITOR_START = 100    # Step awal untuk monitoring grafik
+MONITOR_END   = 1000   # Step akhir untuk monitoring grafik
 
 ABLATION_CONFIGS = {
     'E2_Sharpe'          : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'sharpe'},
@@ -327,13 +329,45 @@ class RewardLoggerCallback(BaseCallback):
     def __init__(self, verbose=0):
         super().__init__(verbose)
         self.episode_rewards = []
+        self.step_rewards = []  # Track rewards per step
         self.current_episode_reward = 0
     def _on_step(self) -> bool:
-        self.current_episode_reward += self.locals['rewards'][0]
+        reward = self.locals['rewards'][0]
+        self.step_rewards.append(reward)
+        self.current_episode_reward += reward
         if self.locals['dones'][0]:
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0
         return True
+
+def plot_step_monitoring(step_rewards, exp_id, start_step, end_step):
+    """Visualizes the score curve for a specific range of steps for any model."""
+    plt.figure(figsize=(10, 5))
+    data_slice = step_rewards[start_step:end_step]
+    steps = range(start_step, start_step + len(data_slice))
+    
+    # Pilih warna berdasarkan exp_id (menggunakan mapping yang sudah ada atau default)
+    color_map = {
+        'E2_Sharpe': '#FF9800', 'E2_Sortino': '#9C27B0', 
+        'E2_Calmar': '#2196F3', 'E2_Ulcer': '#F44336'
+    }
+    plot_color = color_map.get(exp_id, '#4CAF50')
+    
+    plt.plot(steps, data_slice, color=plot_color, alpha=0.6, label='Raw Step Reward')
+    if len(data_slice) > 20:
+        ma = pd.Series(data_slice).rolling(window=20).mean()
+        plt.plot(steps, ma, color='black', lw=2, label='Trend (MA 20)')
+        
+    plt.title(f'Monitoring Performa {exp_id}\nStep {start_step} sampai {end_step}', fontweight='bold')
+    plt.xlabel('Training Steps')
+    plt.ylabel('Normalized Score (Reward)')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    out_path = os.path.join(OUTPUT_DIR, f'monitoring_step_{exp_id}.png')
+    plt.savefig(out_path, dpi=150)
+    plt.show()
+    print(f"Monitoring plot untuk {exp_id} disimpan di: {out_path}")
 
 # ================================================================
 # TRAINING & EVALUATION
@@ -360,6 +394,10 @@ for exp_id, config in tqdm(ABLATION_CONFIGS.items(), desc="Experiments"):
         model.save(name)
         trained_models[(exp_id, seed)] = name
         train_histories[exp_id][seed] = callback.episode_rewards
+        
+        # Monitoring untuk semua model pada seed pertama
+        if seed == SEEDS[0]:
+            plot_step_monitoring(callback.step_rewards, exp_id, MONITOR_START, MONITOR_END)
 
 # 2. Backtesting
 results_test = {}; results_train = {}
