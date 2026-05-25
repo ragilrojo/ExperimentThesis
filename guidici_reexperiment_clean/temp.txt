@@ -1,0 +1,156 @@
+Vol:.(1234567890)Journal of Asset Management (2024) 25:136–146
+https://doi.org/10.1057/s41260-023-00347-8
+ORIGINAL ARTICLE
+Network Risk Parity: graph theory‑based portfolio construction
+Vito Ciciretti1 · Alberto Pallotta2 
+Revised: 31 May 2023 / Accepted: 11 December 2023 / Published online: 20 February 2024 
+© The Author(s) 2024
+Abstract
+This study presents network risk parity, a graph theory-based portfolio construction methodology that arises from a thought-
+ful critique of the clustering-based approach used by hierarchical risk parity. Advantages of network risk parity include: the 
+ability to capture one-to-many relationships between securities, overcoming the one-to-one limitation; the capacity to leverage 
+the mathematics of graph theory, which enables us, among other things, to demonstrate that the resulting portfolios is less 
+concentrated than those obtained with mean-variance; and the ability to simplify the model specification by eliminating the 
+dependency on the selection of a distance and linkage function. Performance-wise, due to a better representation of system-
+atic risk within the minimum spanning tree, network risk parity outperforms hierarchical risk parity and other competing 
+methods, especially as the number of portfolio constituents increases.
+Keywords Portfolio construction · Graph theory · Hierarchical clustering · Eigenvalues
+JEL classification G11
+Introduction
+The seminal asset allocation model of Markowitz (1952) has 
+been the stronghold of portfolio construction since 1952. 
+However, extensive research documents three main limita-
+tions, namely producing unstable, concentrated, and under -
+performing portfolios. Michaud (1989) provides a detailed 
+exploration of these issues. The finance literature has pro-
+posed numerous solutions, including the works of Black and 
+Litterman (1992) and Ledoit and Wolf (2004), among others.
+The literature on portfolio construction has recently 
+focused on two fields of application: clustering and graph 
+theory. On the clustering side, the main representative is the 
+hierarchical risk parity (HRP) of de Prado ( 2016 ), which 
+applies hierarchical clustering to securities based on cor -
+relations. This groups similar investments while distanc-
+ing dissimilar ones, with optimal allocation achieved via inverse-variance allocation. Raffinot (2017) further pro-
+vided a comprehensive framework for portfolio construction 
+employing hierarchical clustering.
+Peralta and Zareei (2016) marked the pioneering step with 
+the inclusion of graph theory in the portfolio construction 
+literature. They demonstrated the close relationship between 
+graph centrality measures and optimal portfolio weights. 
+Furthermore, they designed portfolios by equally distribut-
+ing capital to the most central securities in low-volatility 
+periods and rebalancing to the least central securities dur -
+ing high-volatility periods. Vỳrost et al. (2019) constructed 
+optimal portfolios based on four graphical representations 
+of securities: a complete graph, a minimum spanning tree, 
+a planar maximally filtered graph, and a threshold signifi-
+cance graph.
+This paper aims at introducing network risk parity (NRP), 
+a novel graph theory-based portfolio construction method 
+that produces fully invested, long-only portfolios. We derive 
+network risk parity by drawing a parallel with hierarchical 
+risk parity. Indeed, while hierarchical risk parity is based on 
+hierarchical clustering, Network risk parity builds portfo -
+lios with graph theory. The connection point between both 
+methodologies is that they calculate portfolio weights pro -
+portionally to the inverse of the eigenvalues of a modified 
+covariance matrix. In hierarchical risk parity, the optimal  * Alberto Pallotta 
+ a.pallotta@mdx.ac.uk
+ Vito Ciciretti 
+ vciciretti8@gmail.com
+1 Berlin, Germany
+2 Middlesex University, The Burroughs, Hendon, 
+London NW4 4BT, UK
+---PAGE 2---
+137 Network Risk Parity: graph theory -based portfolio construction  
+weights are calculated as the inverse of each security’s vari-
+ance. This variance is obtained from the main diagonal of 
+a quasi-diagonal covariance matrix, which is modified to 
+incorporate the hierarchical structure derived using hierar -
+chical clustering. We demonstrate that the weighting system 
+employed by HRP is equivalent to taking the inverse of the 
+eigenvalues of the same covariance matrix, after an essen-
+tial quasi-diagonalization step. On the other hand, network 
+risk parity operates on a different principle. It utilizes an 
+adjacency matrix based on covariances, where one set of 
+eigenvectors is determined by the eigenvector centrality, a 
+measure of the influence of a node in a network. In NRP, the 
+optimal portfolio weights are calculated as the inverse of the 
+eigenvector centrality. A softmax normalization is applied to 
+these weights to ensure a fully invested, long-only portfolio.
+Three advantages of network risk parity stem from 
+transposing clustering-based methodologies into a graph 
+theory framework. Firstly, NRP, grounded on the principle 
+of eigenvector centrality, encapsulates relationships among 
+securities in a one-to-many fashion, resulting from the defi-
+nition of eigenvector centrality that embeds the importance 
+of neighboring nodes too. Hierarchical clustering, on the 
+other hand, captures only one-to-one relationships due to its 
+agglomerative clustering approach, which looks at pairwise 
+distances. Secondly, hierarchical clustering depends on the 
+determination of a distance and a linkage function. NRP, 
+instead, is based on minimum spanning tree (MST), which 
+solely depends on the function used to convert correlations 
+into distances. Hierarchical risk parity in particular has been 
+criticized for its adoption of a single linkage function, which 
+differentiates securities based on the distance of the nearest 
+points within clusters, thereby causing a chaining effect that 
+expands the tree and impacts portfolio weights (Papenbrock 
+2011). Third, leveraging on graph theory, we can prove that 
+the portfolio weights of NRP and HRP1 have a lower bound 
+larger than zero, thus assigning a positive weight to each 
+portfolio constituent and improving portfolio diversification, 
+a pitfall of the classic mean-variance approach.
+Using a bootstrapping approach, we compare the Sharpe 
+ratio of NRP with that of HRP, risk parity (RP), Markow -
+itz’s minimum variance optimization (MVO), and equally 
+weighted (EW) portfolios. While NRP consistently outper -
+forms the other methods, compared to HRP, its performance 
+depends on the number of stocks in the portfolio, outper -
+forming HRP as the portfolio size increases.
+The rest of the paper is organized as follows: Section  2 
+introduces NRP and compares it to HRP. Section  3 presents the empirical results in terms of bootstrapped Sharpe ratio 
+and weights. Section  4 concludes and discusses future work.
+Methodology
+Covariance
+The starting point of network risk parity, similar to most 
+portfolio construction methodologies, is to estimate the 
+covariance matrix of asset returns. We use hourly security 
+prices and define log-returns as:
+where ri,/u1D70F is the return of the i -th asset at time /u1D70F , pi,/u1D70F is the 
+price of the i-th asset at time /u1D70F , and T is the number of hours 
+in each month. We estimate the conditional covariance 
+by employing the methodology of Barndorff-Nielsen and 
+Shephard (2004), who show that conditional covariances can 
+be estimated through non-parametric realized covariances, 
+RCt , which converge in probability to the quadratic varia-
+tion of the price process under very general assumptions. 
+Thus, we calculate monthly realized covariances, RCt , as the 
+aggregation of cross-products of hourly returns, such that:
+This ensures positive definite realized covariance matrices 
+and makes covariance fully observable and moldable with 
+any time series model. The use of hourly returns in con-
+structing our portfolios helps to provide a higher number of 
+observations, which in turn increases the robustness of our 
+covariance matrix estimation.2 It should be noted, however, 
+that network risk parity is a covariance-agnostic portfolio 
+construction method. While accurate covariance estima -
+tion is crucial for any portfolio construction approach, the 
+primary focus of this paper is not to provide an improved 
+estimate of covariances.
+Review of Hierarchical Risk Parity
+Hierarchical Risk Parity produces portfolios from a three-
+step process. Firstly, hierarchical clustering is performed on 
+correlation-based distance measures, starting from the cor -
+relation matrix of asset returns. Since clustering requires a 
+distance measure to encapsulate the relationship between ri,/u1D70F=ln/parenleft.s3pi,/u1D70F
+pi,/u1D70F−1/parenright.s3
+∀/u1D70F=1,…,T;∀i=1, ..., n
+(1) RCt=Nt/uni2211.s1
+/u1D70F=1r/u1D70Fr�
+/u1D70F.
+1 As the process of clustering a correlation matrix can be re-written 
+as a tree on a complete digraph, the weight floor applies to HRP as 
+well.2 In this study, we aggregate hourly returns into monthly covariances, 
+and we assume the portfolios are rebalanced monthly.

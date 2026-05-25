@@ -3,19 +3,20 @@ RL Network-Markowitz Portfolio Optimization
 Thesis-Ready Version — Multi-Seed SAC + Ablation Study (Calmar vs CVaR Reward) + XAI Analysis
 """
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend — gambar disimpan ke file, tidak membuka jendela GUI
+# matplotlib.use('Agg')  # Non-interactive backend dinonaktifkan agar gambar bisa ditampilkan
 
 # ================================================================
 # GLOBAL SETTINGS — THESIS-READY VERSION
 # ================================================================
 SEEDS         = [42, 123, 77]    # Multi-seed untuk reliabilitas statistik
-TRAIN_STEPS   = 1000             # Sesuai gambar contoh
+TRAIN_STEPS   = 20000             # Sesuai gambar contoh
 GAMMA_CENTER  = 0
 SET_WINDOW    = 30
 SET_REBALANCE = 7
 REWARD_WINDOW = 20
 CVAR_LEVEL    = 0.95
 STAT_ALPHA    = 0.05             # significance level untuk uji statistik
+SAVE_IMAGES   = False            # Set ke False jika hanya ingin menampilkan gambar tanpa menyimpan
 
 # Definisi eksperimen ablation
 ABLATION_CONFIGS = {
@@ -23,6 +24,7 @@ ABLATION_CONFIGS = {
     'E2_Sortino'         : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'sortino'},
     'E2_Calmar'          : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'calmar'},
     'E2_Ulcer'           : {'use_network': True,  'use_market': True,  'extra_features': [], 'reward_type': 'ulcer'},
+    'E2_Ensemble_Avg'    : {'use_network': True,  'use_market': True,  'extra_features': [], 'is_ensemble': True},
     
     # --- Baseline: Static Gamma ---
     'Comp_Static_Gamma0' : {'use_network': True,  'use_market': False, 'extra_features': [], 'static_gamma': 0.0},
@@ -248,6 +250,7 @@ ABLATION_COLORS = {
     'E2_Sortino'         : '#9C27B0',
     'E2_Calmar'          : '#2196F3',
     'E2_Ulcer'           : '#F44336',
+    'E2_Ensemble_Avg'    : '#00BCD4',
     'Comp_Static_Gamma0' : '#9E9E9E',
     'Comp_Static_Gamma1' : '#795548',
     'Comp_Static_Gamma2' : '#607D8B',
@@ -260,6 +263,7 @@ DISPLAY_NAMES = {
     'E2_Sortino'         : 'E2-Sortino',
     'E2_Calmar'          : 'E2-Calmar',
     'E2_Ulcer'           : 'E2-Ulcer',
+    'E2_Ensemble_Avg'    : 'E2-Ensemble',
     'Comp_Static_Gamma0' : 'γ=0 (Static)',
     'Comp_Static_Gamma1' : 'γ=1 (Static)',
     'Comp_Static_Gamma2' : 'γ=2 (Static)',
@@ -307,9 +311,11 @@ def plot_learning_curves(history_dict):
     
     plt.tight_layout()
     out_path = os.path.join(OUTPUT_DIR, 'learning_curves.png')
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
+    if SAVE_IMAGES:
+        plt.savefig(out_path, dpi=150, bbox_inches='tight')
+        print(f'[SAVED] {out_path}')
+    plt.show() # Tampilkan gambar di layar/notebook
     plt.close()
-    print(f'[SAVED] {out_path}')
 
 def run_wilcoxon_tests(results_dict, baseline_id='Classic-MV'):
     stats_summary = []
@@ -327,7 +333,7 @@ def run_wilcoxon_tests(results_dict, baseline_id='Classic-MV'):
             stats_summary.append(f"vs {exp_id}: error")
     return "\n ".join(stats_summary)
 
-def generate_dashboard(results_dict, title_prefix, period_name, filename):
+def generate_dashboard(results_dict, title_prefix, period_name, filename_base):
     # Calculate metrics for all experiments
     exp_ids = list(results_dict.keys())
     metrics_list = []
@@ -346,161 +352,173 @@ def generate_dashboard(results_dict, title_prefix, period_name, filename):
     
     df_metrics = pd.DataFrame(metrics_list).sort_values(by='Sharpe Ratio Mean', ascending=False)
     
-    fig = plt.figure(figsize=(16, 12), facecolor='white')
-    gs = gridspec.GridSpec(5, 4, height_ratios=[0.5, 1.5, 1.5, 1.5, 1.0])
-    
-    # Header
-    fig.suptitle(f'{title_prefix}\nEvaluasi 4 Metrik Tesis ({period_name.upper()} PERIOD): Sharpe | Sortino | Calmar | Ulcer Index\nMulti-Seed: {SEEDS} | TRAIN_STEPS={TRAIN_STEPS}', 
-                 fontsize=14, fontweight='bold', y=0.97)
+    # ------------------------------------------------------------------
+    # DIAGRAM 1: Metrics Table & Bar Charts
+    # ------------------------------------------------------------------
+    fig1 = plt.figure(figsize=(16, 10), facecolor='white')
+    gs1 = gridspec.GridSpec(2, 4, height_ratios=[1.2, 1.0])
+    fig1.suptitle(f'{title_prefix} — Metrics Comparison\nPeriod: {period_name.upper()} | Seeds: {SEEDS}', fontsize=14, fontweight='bold', y=0.98)
 
-    # 1. Summary Table
-    ax_table = fig.add_subplot(gs[1, :])
+    # 1a. Table
+    ax_table = fig1.add_subplot(gs1[0, :])
     ax_table.axis('off')
     table_data = []
-    columns = ['Experiment', 'Features', 'Obs\nDim', 'Sharpe (↑)\n'+period_name.capitalize(), 'Sortino (↑)\n'+period_name.capitalize(), 'Calmar (↑)\n'+period_name.capitalize(), 'Ulcer Index\n(Mendekati 0)\n'+period_name.capitalize(), 'Rank']
-    
+    columns = ['Experiment', 'Features', 'Obs Dim', 'Sharpe (↑)', 'Sortino (↑)', 'Calmar (↑)', 'Ulcer (↓)', 'Rank']
     for i, (_, row) in enumerate(df_metrics.iterrows()):
-        r = [
-            row['Experiment'],
-            row['Features'],
-            row['Obs Dim'],
+        table_data.append([
+            row['Experiment'], row['Features'], row['Obs Dim'],
             f"{row['Sharpe Ratio Mean']:.3f}±{row['Sharpe Ratio Std']:.3f}" if row['Sharpe Ratio Std']>1e-4 else f"{row['Sharpe Ratio Mean']:.3f}",
             f"{row['Sortino Ratio Mean']:.3f}±{row['Sortino Ratio Std']:.3f}" if row['Sortino Ratio Std']>1e-4 else f"{row['Sortino Ratio Mean']:.3f}",
             f"{row['Calmar Ratio Mean']:.3f}±{row['Calmar Ratio Std']:.3f}" if row['Calmar Ratio Std']>1e-4 else f"{row['Calmar Ratio Mean']:.3f}",
             f"{row['Ulcer Index Mean']:.4f}±{row['Ulcer Index Std']:.4f}" if row['Ulcer Index Std']>1e-4 else f"{row['Ulcer Index Mean']:.4f}",
             f"#{i+1}"
-        ]
-        table_data.append(r)
-    
+        ])
     table = ax_table.table(cellText=table_data, colLabels=columns, loc='center', cellLoc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1, 1.8)
+    table.auto_set_font_size(False); table.set_fontsize(9); table.scale(1, 2)
     for (row_idx, col_idx), cell in table.get_celld().items():
-        if row_idx == 0:
-            cell.set_facecolor('#1976D2')
-            cell.set_text_props(color='white', fontweight='bold')
-        elif row_idx % 2 == 0:
-            cell.set_facecolor('#F0F7FF')
-    ax_table.set_title(f'Rangkuman 4 Metrik Tesis ({period_name.capitalize()}) — Ranked by Sharpe Ratio\n[Keterangan] Sharpe, Sortino, Calmar: Semakin besar semakin baik (↑) | Ulcer Index: Semakin mendekati 0 semakin baik\nNilai: Mean ± Std across {len(SEEDS)} seeds', fontsize=10, fontweight='bold', pad=10)
+        if row_idx == 0: cell.set_facecolor('#1976D2'); cell.set_text_props(color='white', fontweight='bold')
+        elif row_idx % 2 == 0: cell.set_facecolor('#F0F7FF')
+    ax_table.set_title('Rangkuman Metrik Performa (Mean ± Std)', fontsize=11, fontweight='bold', pad=15)
 
-    # 2. Bar Charts
+    # 1b. Bar Charts
     for i, m in enumerate(EVAL_METRICS):
-        ax = fig.add_subplot(gs[2, i])
+        ax = fig1.add_subplot(gs1[1, i])
         means = [row[f'{m} Mean'] for _, row in df_metrics.iterrows()]
         stds = [row[f'{m} Std'] for _, row in df_metrics.iterrows()]
         exps = [row['Experiment'] for _, row in df_metrics.iterrows()]
         colors = [ABLATION_COLORS.get(e, '#777777') for e in exps]
-        
-        bars = ax.bar(exps, means, yerr=stds, color=colors, capsize=3, alpha=0.8, edgecolor='white')
-        
-        # Highlight E2
-        for j, e in enumerate(exps):
-            if str(e).startswith('E2'):
-                bars[j].set_edgecolor('gold')
-                bars[j].set_linewidth(2)
+        bars = ax.bar(exps, means, yerr=stds, color=colors, capsize=3, alpha=0.8)
+        label = "(↓ lebih kecil baik)" if "Ulcer" in m else "(↑ lebih besar baik)"
+        ax.set_title(f'{m}\n{label}', fontsize=10, fontweight='bold')
+        ax.tick_params(axis='x', labelsize=7); ax.axhline(0, color='black', lw=0.5)
+        ax.set_xticklabels([get_display_name(e) for e in exps], rotation=45, ha='right')
 
-        keterangan = "(mendekati 0 = lebih baik)" if "Drawdown" in m else "(lebih besar = lebih baik)"
-        ax.set_title(f'{m}\n{keterangan}\n({period_name.capitalize()})', fontsize=9, fontweight='bold')
-        ax.set_ylabel(f'{m} ({period_name.capitalize()})', fontsize=7)
-        ax.tick_params(axis='x', labelsize=6)
-        ax.axhline(0, color='black', linewidth=0.5)
-        ax.set_xticklabels([e[:5] if len(e)>8 else e for e in exps])
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    path1 = os.path.join(OUTPUT_DIR, f"1_metrics_{filename_base}")
+    if SAVE_IMAGES:
+        plt.savefig(path1, dpi=200, bbox_inches='tight')
+    plt.show()
+    plt.close()
 
-    # 3. Cumulative Returns
-    ax_cum = fig.add_subplot(gs[3, :])
+    # ------------------------------------------------------------------
+    # DIAGRAM 2: Cumulative Returns
+    # ------------------------------------------------------------------
+    fig2 = plt.figure(figsize=(16, 7), facecolor='white')
+    ax_cum = fig2.add_subplot(111)
     for exp_id in exp_ids:
         avg_rets = results_dict[exp_id].mean(axis=1)
         cum_rets = (1 + avg_rets).cumprod()
-        ax_cum.plot(cum_rets, label=get_display_name(exp_id), color=ABLATION_COLORS.get(exp_id, '#777777'), linewidth=2 if str(exp_id).startswith('E2') else 1.2)
-    
-    ax_cum.axhline(1.0, color='grey', linestyle='--', linewidth=0.8)
-    ax_cum.set_title(f'Cumulative Returns — {period_name.capitalize()} Period (Mean across {len(SEEDS)} seeds)', fontsize=10, fontweight='bold')
-    ax_cum.set_ylabel('Cumulative Return', fontsize=8)
-    ax_cum.legend(fontsize=7, ncol=3)
+        ax_cum.plot(cum_rets, label=get_display_name(exp_id), color=ABLATION_COLORS.get(exp_id, '#777777'), lw=2.5 if str(exp_id).startswith('E2') else 1.2)
+    ax_cum.axhline(1.0, color='grey', ls='--', lw=0.8)
+    ax_cum.set_title(f'Cumulative Returns (Mean across {len(SEEDS)} seeds) — {period_name.capitalize()} Period', fontsize=14, fontweight='bold')
+    ax_cum.set_ylabel('Growth of 1.0 Unit', fontsize=12); ax_cum.legend(fontsize=9, ncol=4, loc='upper left')
     ax_cum.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    path2 = os.path.join(OUTPUT_DIR, f"2_returns_{filename_base}")
+    if SAVE_IMAGES:
+        plt.savefig(path2, dpi=200, bbox_inches='tight')
+    plt.show()
+    plt.close()
 
-    # 4. Statistical Summary & Interpretation
-    ax_stat = fig.add_subplot(gs[4, 0:2])
-    ax_stat.axis('off')
+    # ------------------------------------------------------------------
+    # DIAGRAM 3: Stats & Interpretation
+    # ------------------------------------------------------------------
+    fig3 = plt.figure(figsize=(16, 6), facecolor='white')
+    gs3 = gridspec.GridSpec(1, 2)
+    fig3.suptitle(f'{title_prefix} — Statistical Summary & Interpretation', fontsize=14, fontweight='bold', y=0.98)
+
+    ax_stat = fig3.add_subplot(gs3[0, 0]); ax_stat.axis('off')
     stat_text = run_wilcoxon_tests(results_dict, 'Classic-MV')
     ax_stat.text(0, 1, f"UJI STATISTIK: E2 Models vs Baseline\n(α=0.05, Wilcoxon Signed-Rank)\n\n {stat_text}", 
-                 fontsize=9, family='monospace', bbox=dict(facecolor='#E8F5E9', alpha=0.5, boxstyle='round,pad=1'), va='top')
-    ax_stat.set_title('Ringkasan Uji Statistik', fontsize=9, fontweight='bold', loc='left')
+                 fontsize=10, family='monospace', bbox=dict(facecolor='#F1F8E9', alpha=0.8, boxstyle='round,pad=1'), va='top')
 
-    ax_interp = fig.add_subplot(gs[4, 2:4])
-    ax_interp.axis('off')
+    ax_interp = fig3.add_subplot(gs3[0, 1]); ax_interp.axis('off')
     best_sharpe = df_metrics.iloc[0]['Experiment']
-    interp_text = f"INTERPRETASI ABLATION STUDY - 4 METRIK TESIS:\n\n"
-    interp_text += f"Best Sharpe Ratio   : {best_sharpe} = {df_metrics.iloc[0]['Sharpe Ratio Mean']:.4f}\n"
-    interp_text += f"Best Sortino Ratio  : {df_metrics.sort_values('Sortino Ratio Mean', ascending=False).iloc[0]['Experiment']} = {df_metrics.sort_values('Sortino Ratio Mean', ascending=False).iloc[0]['Sortino Ratio Mean']:.4f}\n"
+    interp_text = f"INTERPRETASI OTOMATIS:\n\n"
+    interp_text += f"Top Sharpe Model    : {best_sharpe} ({df_metrics.iloc[0]['Sharpe Ratio Mean']:.4f})\n"
+    interp_text += f"Top Sortino Model   : {df_metrics.sort_values('Sortino Ratio Mean', ascending=False).iloc[0]['Experiment']}\n"
+    interp_text += f"Top Risk-Adjusted   : {df_metrics.sort_values('Ulcer Index Mean', ascending=True).iloc[0]['Experiment']} (Best Ulcer)\n\n"
     
-    best_ulcer_exp = df_metrics.sort_values('Ulcer Index Mean', ascending=True).iloc[0]['Experiment']
-    interp_text += f"Best Ulcer Index    : {best_ulcer_exp} = {df_metrics.sort_values('Ulcer Index Mean', ascending=True).iloc[0]['Ulcer Index Mean']:.5f} (terbaik)\n\n"
+    base_s = df_metrics[df_metrics['Experiment']=='Classic-MV']['Sharpe Ratio Mean'].values[0]
+    e2_s = df_metrics[df_metrics['Experiment']=='E2_Sharpe']['Sharpe Ratio Mean'].values[0] if 'E2_Sharpe' in df_metrics['Experiment'].values else 0
+    interp_text += f"IMPROVEMENT vs BASELINE (Sharpe):\nΔ: {e2_s - base_s:+.4f}"
     
-    # Calculate improvement vs baseline
-    base_sharpe = df_metrics[df_metrics['Experiment']=='Classic-MV']['Sharpe Ratio Mean'].values[0]
-    e2_sharpe = df_metrics[df_metrics['Experiment']=='E2_Sharpe']['Sharpe Ratio Mean'].values[0] if len(df_metrics[df_metrics['Experiment']=='E2_Sharpe']) > 0 else 0.0
-    interp_text += f"PERFORMA vs Classic-MV (Δ):\n"
-    interp_text += f"Sharpe: {e2_sharpe - base_sharpe:+.4f} | Sortino: {df_metrics[df_metrics['Experiment']=='E2_Sortino']['Sortino Ratio Mean'].values[0] if len(df_metrics[df_metrics['Experiment']=='E2_Sortino']) > 0 else 0.0 - df_metrics[df_metrics['Experiment']=='Classic-MV']['Sortino Ratio Mean'].values[0]:+.4f}"
+    ax_interp.text(0, 1, interp_text, fontsize=10, family='monospace', bbox=dict(facecolor='#E8EAF6', alpha=0.8, boxstyle='round,pad=1'), va='top')
     
-    ax_interp.text(0, 1, interp_text, fontsize=8, family='monospace', bbox=dict(facecolor='#EEF2FF', alpha=0.5, boxstyle='round,pad=1'), va='top')
-    ax_interp.set_title('Interpretasi Otomatis', fontsize=9, fontweight='bold', loc='left')
-
-    plt.tight_layout()
-    out_path = os.path.join(OUTPUT_DIR, filename)
-    plt.savefig(out_path, dpi=200, bbox_inches='tight')
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    path3 = os.path.join(OUTPUT_DIR, f"3_interpretation_{filename_base}")
+    if SAVE_IMAGES:
+        plt.savefig(path3, dpi=200, bbox_inches='tight')
+        print(f'[SAVED] 3 Dashboard images saved in {OUTPUT_DIR}')
+    plt.show()
     plt.close()
-    print(f'[SAVED] {out_path}')
 
-def plot_shap_analysis(model_path, env, config, exp_id):
+def plot_shap_analysis(model_paths, env, config, exp_id):
+    """
+    Generates SHAP analysis for a single model or an ensemble of models.
+    model_paths: can be a single path string or a list of paths for ensemble.
+    """
     print(f"Generating SHAP analysis for {exp_id}...")
-    model = SAC.load(model_path)
+    
+    import torch
+    models = []
+    if isinstance(model_paths, list):
+        for p in model_paths: models.append(SAC.load(p))
+    else:
+        models.append(SAC.load(model_paths))
     
     # Sample background and test data
     obs_list = []
-    for _ in range(200):
+    for _ in range(100):
         obs, _ = env.reset()
         done = False
-        while not done and len(obs_list) < 500:
+        while not done and len(obs_list) < 400:
             obs_list.append(obs)
-            action, _ = model.predict(obs, deterministic=True)
+            # Use first model for sampling trajectory
+            action, _ = models[0].predict(obs, deterministic=True)
             obs, rew, done, _, _ = env.step(action)
     
     X = np.array(obs_list)
+    df_X = pd.DataFrame(X, columns=FEATURE_NAMES[:X.shape[1]])
     
     def predict_action(x):
-        # model.policy.actor expects a torch tensor
-        import torch
-        x_torch = torch.tensor(x, dtype=torch.float32)
+        # x can be a numpy array or a DataFrame, convert to numpy for torch
+        x_torch = torch.tensor(np.array(x), dtype=torch.float32)
         with torch.no_grad():
-            # For SAC, we take the mean of the actor distribution
-            actions = model.policy.actor(x_torch)
-        return actions.numpy()
+            all_actions = []
+            for m in models:
+                all_actions.append(m.policy.actor(x_torch).numpy())
+            # Average actions across models
+            avg_actions = np.mean(all_actions, axis=0)
+        return avg_actions
 
-    explainer = shap.Explainer(predict_action, X[:100])
-    shap_values = explainer(X[100:300])
-    shap_values.feature_names = FEATURE_NAMES[:X.shape[1]]
+    explainer = shap.Explainer(predict_action, df_X[:100])
+    shap_values = explainer(df_X[100:300])
     
     # Summary Plot (Beeswarm)
     plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, X[100:300], feature_names=FEATURE_NAMES[:X.shape[1]], show=False)
-    plt.title(f'SHAP Feature Importance — Policy SAC {exp_id}', fontsize=12, fontweight='bold')
+    shap.summary_plot(shap_values, df_X[100:300], show=False)
+    plt.title(f'SHAP Feature Importance — {exp_id}', fontsize=12, fontweight='bold')
     plt.tight_layout()
     out_summary = os.path.join(OUTPUT_DIR, f'shap_summary_{exp_id}.png')
-    plt.savefig(out_summary, dpi=150, bbox_inches='tight')
+    if SAVE_IMAGES:
+        plt.savefig(out_summary, dpi=150, bbox_inches='tight')
+        print(f'[SAVED] {out_summary}')
+    plt.show()
     plt.close()
-    print(f'[SAVED] {out_summary}')
     
     # Bar Plot
     plt.figure(figsize=(10, 6))
     shap.plots.bar(shap_values, show=False)
-    plt.title(f'SHAP Mean |Value| — Policy SAC {exp_id}', fontsize=12, fontweight='bold')
+    plt.title(f'SHAP Mean |Value| — {exp_id}', fontsize=12, fontweight='bold')
     plt.tight_layout()
     out_bar = os.path.join(OUTPUT_DIR, f'shap_bar_{exp_id}.png')
-    plt.savefig(out_bar, dpi=150, bbox_inches='tight')
+    if SAVE_IMAGES:
+        plt.savefig(out_bar, dpi=150, bbox_inches='tight')
+        print(f'[SAVED] {out_bar}')
+    plt.show()
     plt.close()
-    print(f'[SAVED] {out_bar}')
 
 # ================================================================
 # FEATURE ENGINEERING & CACHE
@@ -631,16 +649,22 @@ train_histories = {}
 
 # 1. RL Training
 for exp_id, config in ABLATION_CONFIGS.items():
-    if config.get('static_gamma') is not None: continue
+    if config.get('static_gamma') is not None or config.get('is_ensemble'): continue
     print(f'\nTraining {exp_id}...')
     train_histories[exp_id] = {}
     for seed in SEEDS:
+        name = f'model_{exp_id}_s{seed}'
+        # Bypass training if model already exists
+        if os.path.exists(name + ".zip"):
+            print(f'   [SKIP] Model {name} sudah ada.')
+            trained_models[(exp_id, seed)] = name
+            continue
+            
         env = AblationPortfolioEnv(ret_train, config, 0)
         callback = RewardLoggerCallback()
         model = SAC('MlpPolicy', env, seed=seed, verbose=0, learning_rate=3e-4)
         model.learn(total_timesteps=TRAIN_STEPS, callback=callback, progress_bar=True)
         
-        name = f'model_{exp_id}_s{seed}'
         model.save(name)
         trained_models[(exp_id, seed)] = name
         train_histories[exp_id][seed] = callback.episode_rewards
@@ -663,8 +687,15 @@ for exp_id in list(ABLATION_CONFIGS.keys()) + ['Classic-MV']:
     for seed in SEEDS:
         # Load model once per seed if needed
         model = None
+        ensemble_models = []
         if exp_id not in ['Classic-MV'] and config.get('static_gamma') is None:
-            model = SAC.load(trained_models[(exp_id, seed)])
+            if config.get('is_ensemble'):
+                ensemble_models.append(SAC.load(trained_models[('E2_Sharpe', seed)]))
+                ensemble_models.append(SAC.load(trained_models[('E2_Sortino', seed)]))
+                ensemble_models.append(SAC.load(trained_models[('E2_Calmar', seed)]))
+                ensemble_models.append(SAC.load(trained_models[('E2_Ulcer', seed)]))
+            else:
+                model = SAC.load(trained_models[(exp_id, seed)])
             
         # Testing Re-run
         rets_test = []
@@ -676,6 +707,11 @@ for exp_id in list(ABLATION_CONFIGS.keys()) + ['Classic-MV']:
                 w = compute_classic_mv_weights(c['win'])
             elif config.get('static_gamma') is not None:
                 w = fast_centrality_weights(c['cov_f'], c['cent_vec'], c['mu'], config['static_gamma'])
+            elif config.get('is_ensemble'):
+                obs, _ = build_observation(c['win'], config, c['nw_feat_full'], c['corr_f'])
+                gammas = [float(em.predict(obs, deterministic=True)[0][0]) for em in ensemble_models]
+                gamma_final = sum(gammas) / len(gammas)
+                w = fast_centrality_weights(c['cov_f'], c['cent_vec'], c['mu'], gamma_final)
             else:
                 obs, _ = build_observation(c['win'], config, c['nw_feat_full'], c['corr_f'])
                 action, _ = model.predict(obs, deterministic=True)
@@ -694,6 +730,11 @@ for exp_id in list(ABLATION_CONFIGS.keys()) + ['Classic-MV']:
                 w = compute_classic_mv_weights(c['win'])
             elif config.get('static_gamma') is not None:
                 w = fast_centrality_weights(c['cov_f'], c['cent_vec'], c['mu'], config['static_gamma'])
+            elif config.get('is_ensemble'):
+                obs, _ = build_observation(c['win'], config, c['nw_feat_full'], c['corr_f'])
+                gammas = [float(em.predict(obs, deterministic=True)[0][0]) for em in ensemble_models]
+                gamma_final = sum(gammas) / len(gammas)
+                w = fast_centrality_weights(c['cov_f'], c['cent_vec'], c['mu'], gamma_final)
             else:
                 obs, _ = build_observation(c['win'], config, c['nw_feat_full'], c['corr_f'])
                 action, _ = model.predict(obs, deterministic=True)
@@ -705,28 +746,68 @@ for exp_id in list(ABLATION_CONFIGS.keys()) + ['Classic-MV']:
 
 # 3. Generate Dashboards
 print("\nGenerating Final Dashboards...")
-generate_dashboard(results_test, "Ablation Study Final Dashboard — SAC + Network-Markowitz Portfolio", "Testing", "dashboard_testing.png")
-generate_dashboard(results_train, "Ablation Study Final Dashboard — SAC + Network-Markowitz Portfolio", "Training", "dashboard_training.png")
+generate_dashboard(results_test, "Ablation Study Dashboard — SAC + Network-Markowitz", "Testing", "testing.png")
+generate_dashboard(results_train, "Ablation Study Dashboard — SAC + Network-Markowitz", "Training", "training.png")
 
-# 4. SHAP Analysis for the Best Model
-best_exp_id = None
-best_sharpe = -np.inf
+# 4. SHAP Analysis for All E2 Models
+print("\nGenerating SHAP analysis for all E2 models...")
+seed0 = SEEDS[0]
+for exp_id in ['E2_Sharpe', 'E2_Sortino', 'E2_Calmar', 'E2_Ulcer', 'E2_Ensemble_Avg']:
+    config = ABLATION_CONFIGS.get(exp_id, {})
+    
+    # Load model path(s)
+    if exp_id == 'E2_Ensemble_Avg':
+        # Ensemble loads all 4 base models
+        m_paths = [
+            trained_models.get(('E2_Sharpe', seed0)),
+            trained_models.get(('E2_Sortino', seed0)),
+            trained_models.get(('E2_Calmar', seed0)),
+            trained_models.get(('E2_Ulcer', seed0))
+        ]
+        # Filter out None if some models failed to train
+        m_paths = [p for p in m_paths if p is not None and os.path.exists(p + ".zip")]
+        if len(m_paths) == 0: continue
+    else:
+        m_paths = trained_models.get((exp_id, seed0))
+        if m_paths is None or not os.path.exists(m_paths + ".zip"): continue
 
-for exp_id in ABLATION_CONFIGS.keys():
-    if str(exp_id).startswith('E2') and exp_id in results_test:
-        rets_df = results_test[exp_id]
-        m_seeds = [calculate_all_metrics(rets_df[s], CVAR_LEVEL) for s in rets_df.columns]
-        sharpe_mean = np.mean([ms['Sharpe Ratio'] for ms in m_seeds])
-        if sharpe_mean > best_sharpe:
-            best_sharpe = sharpe_mean
-            best_exp_id = exp_id
-
-if best_exp_id and (best_exp_id, SEEDS[0]) in trained_models:
-    print(f"\nModel paling unggul (best test Sharpe Ratio) adalah {best_exp_id} dengan rata-rata Sharpe: {best_sharpe:.4f}")
-    seed0 = SEEDS[0]
-    env_eval = AblationPortfolioEnv(ret_test, ABLATION_CONFIGS[best_exp_id], len(ret_train))
-    plot_shap_analysis(trained_models[(best_exp_id, seed0)], env_eval, ABLATION_CONFIGS[best_exp_id], best_exp_id)
-else:
-    print("\nTidak dapat menemukan model E2 untuk SHAP analysis.")
+    env_eval = AblationPortfolioEnv(ret_test, config, len(ret_train))
+    plot_shap_analysis(m_paths, env_eval, config, exp_id)
 
 print("\nProcessing complete. Files saved in 'ablation_results_thesis/'.")
+
+# ================================================================
+# RESULTS DISPLAY — PREVIEW SAVED FIGURES
+# ================================================================
+from IPython.display import Image, display
+import os
+
+# Fallback definition jika cell sebelumnya belum dijalankan
+if 'OUTPUT_DIR' not in locals():
+    OUTPUT_DIR = os.path.join(os.getcwd(), 'ablation_results_thesis')
+
+print("\n--- RESULTS PREVIEW ---")
+results_files = [
+    '1_metrics_testing.png',
+    '2_returns_testing.png',
+    '3_interpretation_testing.png',
+    'learning_curves.png'
+]
+
+if not os.path.exists(OUTPUT_DIR):
+    print(f"Directory {OUTPUT_DIR} tidak ditemukan. Pastikan Anda sudah menjalankan proses evaluasi.")
+else:
+    for f in results_files:
+        path = os.path.join(OUTPUT_DIR, f)
+        if os.path.exists(path):
+            print(f"\nDisplaying saved file {f}:")
+            display(Image(filename=path))
+        else:
+            if SAVE_IMAGES:
+                print(f"\nFile {f} not found in {OUTPUT_DIR}")
+
+    # Display SHAP results if any
+    shap_files = [f for f in os.listdir(OUTPUT_DIR) if f.startswith('shap_')]
+    for f in shap_files:
+        print(f"\nDisplaying {f}:")
+        display(Image(filename=os.path.join(OUTPUT_DIR, f)))

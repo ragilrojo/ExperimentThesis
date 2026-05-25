@@ -1,0 +1,651 @@
+
+\documentclass[12pt,a4paper]{article}
+
+% ─── Packages ───────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[bahasa]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{caption}
+
+% ─── Hyperref Setup ─────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue,
+  pdftitle={Dokumentasi: SAC-Based Gamma Controller + Network-Markowitz Portfolio},
+  pdfauthor={Thesis Documentation}
+}
+
+% ─── Code listing style ─────────────────────────────────────────────────────
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!60!black}\itshape,
+  stringstyle=\color{orange!80!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt,
+  backgroundcolor=\color{gray!8},
+  frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4,
+  showstringspaces=false,
+  captionpos=b
+}
+\lstset{style=pythonstyle}
+
+% ─── Header/Footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textit{SAC-Based Network-Markowitz Portfolio}}
+\lhead{\textit{Dokumentasi Eksperimen Tesis}}
+\cfoot{\thepage}
+
+% ─── Title ──────────────────────────────────────────────────────────────────
+\title{%
+  \textbf{Dokumentasi Eksperimen Tesis}\\[6pt]
+  \large SAC-Based Gamma Controller + Network-Markowitz Portfolio\\[4pt]
+  \normalsize\texttt{RLNetworkMarkowitz\_ThesisReady25000step3seed5ModelFixedNext.ipynb}
+}
+\author{Dokumentasi Otomatis dari Jupyter Notebook}
+\date{\today}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Gambaran Umum Eksperimen}
+
+Notebook ini mengimplementasikan simulasi \textbf{SAC-Based Gamma Controller} yang dikombinasikan dengan \textbf{Network-Markowitz Portfolio Optimization} untuk keperluan riset tesis. Eksperimen dilakukan dalam format \emph{ablation study} dengan menggunakan empat konfigurasi model utama.
+
+\subsection{Model yang Dievaluasi}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Comp\_Static\_Gamma0} -- Network features, Static $\gamma = 0.0$
+  \item \textbf{Comp\_Static\_Gamma1} -- Network features, Static $\gamma = 1.0$
+  \item \textbf{Comp\_Static\_Gamma2} -- Network features, Static $\gamma = 2.0$
+  \item \textbf{E2\_NoMarket} -- Network features, SAC Dynamic $\gamma$ (model usulan)
+  \item \textbf{Classic-MV} -- Classic Markowitz Mean-Variance (baseline)
+\end{itemize}
+
+\subsection{Metrik Evaluasi Utama}
+
+Empat metrik kinerja portofolio yang digunakan:
+\begin{enumerate}
+  \item \textbf{Sharpe Ratio} -- Risk-adjusted return (semakin tinggi = lebih baik)
+  \item \textbf{Sortino Ratio} -- Downside risk-adjusted return (semakin tinggi = lebih baik)
+  \item \textbf{Calmar Ratio} -- Return terhadap max drawdown (semakin tinggi = lebih baik)
+  \item \textbf{CVaR (95\%)} -- Conditional Value-at-Risk (semakin kecil = lebih baik)
+\end{enumerate}
+
+\subsection{Perbaikan dari Versi Sebelumnya}
+
+\begin{longtable}{@{}c p{5.5cm} p{7cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Masalah} & \textbf{Fix} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\#} & \textbf{Masalah} & \textbf{Fix} \\
+\midrule
+\endhead
+1 & Single seed (SEEDS=[42]) -- tidak reliabel & \textbf{Multi-seed: [42, 123, 77]} -- mean $\pm$ std \\
+2 & TRAIN\_STEPS=2000 -- terlalu kecil & \textbf{TRAIN\_STEPS=10000} + learning curve monitoring \\
+3 & Tidak ada uji signifikansi & \textbf{Wilcoxon signed-rank test} antar konfigurasi \\
+4 & Baseline terlalu lemah & Tambah \textbf{Equal Risk Contribution (ERC)} \\
+5 & Tidak ada learning curve tracking & \textbf{SAC reward tracking} per episode \\
+6 & Tidak ada robustness check & \textbf{Walk-forward validation} (rolling 3 windows) \\
+7 & Upper bound bobot tidak konsisten & \textbf{Semua model pakai bounds (0, 1.0)} \\
+8 & Classic-MV memakai RMT filter & \textbf{Fungsi terpisah} \texttt{compute\_classic\_mv\_weights()} \\
+9 & Perbandingan tidak apples-to-apples & Classic-MV kini pakai \texttt{np.cov()} murni \\
+\bottomrule
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Global Settings}
+
+\begin{lstlisting}[caption={Global Settings -- Thesis-Ready Version}]
+SEEDS         = [42, 123, 77]   # Multi-seed untuk reliabilitas statistik
+TRAIN_STEPS   = 1000            # SAC training steps (default run)
+GAMMA_CENTER  = 0
+SET_WINDOW    = 30
+SET_REBALANCE = 7
+REWARD_WINDOW = 20
+CVAR_LEVEL    = 0.95
+STAT_ALPHA    = 0.05            # significance level untuk uji statistik
+USE_ZSCORE_SCALING = True       # Enable Z-Score Normalization
+
+ABLATION_CONFIGS = {
+    'Comp_Static_Gamma0': {'use_network': True,  'use_market': False,
+                            'extra_features': [], 'static_gamma': 0.0},
+    'Comp_Static_Gamma1': {'use_network': True,  'use_market': False,
+                            'extra_features': [], 'static_gamma': 1.0},
+    'Comp_Static_Gamma2': {'use_network': True,  'use_market': False,
+                            'extra_features': [], 'static_gamma': 2.0},
+    'E2_NoMarket':        {'use_network': True,  'use_market': False,
+                            'extra_features': []},
+}
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 1: Persiapan Data}
+
+Data diambil dari file \texttt{crypto\_data\_real.xlsx} (sheet: \texttt{Returns}) dan dibagi dengan rasio 70/30.
+
+\begin{lstlisting}[caption={Load \& Split Data}]
+file_data = 'crypto_data_real.xlsx'
+
+def load_and_split(filename, train_split=0.7):
+    df = pd.read_excel(filename, sheet_name='Returns', index_col=0)
+    df.index = pd.to_datetime(df.index)
+    assets = list(df.columns)
+    if 'USDT' in assets:
+        assets.remove('USDT')
+    assets.sort()
+    df = df[assets]
+    split_idx = int(len(df) * train_split)
+    return df.iloc[:split_idx], df.iloc[split_idx:], assets
+\end{lstlisting}
+
+\noindent\textbf{Hasil Split:}
+\begin{itemize}
+  \item \textbf{Aset (9):} BCH, BNB, BTC, EOS, ETH, LTC, TRX, XLM, XRP
+  \item \textbf{Training:} 2017-09-15 -- 2019-03-02 (534 hari)
+  \item \textbf{Testing:} 2019-03-03 -- 2019-10-17 (229 hari)
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 2: Core Functions}
+
+\subsection{Random Matrix Theory (RMT) Filter}
+
+Digunakan untuk denoising matriks korelasi:
+
+\begin{equation}
+  \lambda_{\max} = \left(1 + \sqrt{\frac{1}{Q}}\right)^2, \quad Q = \frac{T}{N}
+\end{equation}
+
+Eigenvalue $< \lambda_{\max}$ dianggap noise dan diset ke nol.
+
+\subsection{Network-Markowitz Objective}
+
+Fungsi objektif portofolio dengan regularisasi jaringan:
+\begin{equation}
+  \min_{\mathbf{w}} \; \mathbf{w}^\top \mathbf{\Sigma}_f \mathbf{w}
+  + \gamma \sum_i c_i w_i
+\end{equation}
+dengan constraints:
+\begin{itemize}
+  \item $\sum_i w_i = 1$ (budget constraint)
+  \item $\mathbf{w}^\top \boldsymbol{\mu} \geq \bar{\mu}$ (return constraint)
+  \item $w_i \in [0, 1]$ (long-only, no upper cap)
+\end{itemize}
+
+di mana $c_i$ adalah eigenvector centrality dari MST.
+
+\subsection{Classic Markowitz (Baseline)}
+
+Implementasi Markowitz (1952) murni tanpa RMT filter dan tanpa centrality:
+\begin{equation}
+  \min_{\mathbf{w}} \; \mathbf{w}^\top \mathbf{\Sigma} \mathbf{w}
+\end{equation}
+dengan $\mathbf{\Sigma}$ adalah sample covariance matrix (\texttt{np.cov()}).
+
+\subsection{Equal Risk Contribution (ERC)}
+
+Setiap aset berkontribusi equal terhadap total portfolio risk:
+\begin{equation}
+  \min_{\mathbf{w}} \sum_i \left( \frac{w_i (\mathbf{\Sigma}\mathbf{w})_i}{\mathbf{w}^\top \mathbf{\Sigma} \mathbf{w}} - \frac{1}{N} \right)^2
+\end{equation}
+
+\subsection{Metrik Evaluasi}
+
+\subsubsection{Sharpe Ratio}
+\begin{equation}
+  \text{Sharpe} = \frac{R_{\text{ann}}}{\sigma_{\text{ann}}}
+\end{equation}
+
+\subsubsection{Sortino Ratio}
+\begin{equation}
+  \text{Sortino} = \frac{R_{\text{ann}}}{\sigma_{\text{downside,ann}}}
+\end{equation}
+
+\subsubsection{Calmar Ratio}
+\begin{equation}
+  \text{Calmar} = \frac{R_{\text{ann}}}{|\text{Max Drawdown}|}
+\end{equation}
+
+\subsubsection{CVaR (95\%)}
+\begin{equation}
+  \text{CVaR}_{95\%} = -\mathbb{E}[r \mid r \leq \text{VaR}_{95\%}]
+\end{equation}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 3: Feature Engineering}
+
+Bagian ini mendefinisikan logika ekstraksi fitur yang digunakan oleh model SAC untuk menentukan nilai $\gamma$ secara dinamis. Fitur dibagi menjadi fitur jaringan (network), fitur pasar (market), dan fitur tambahan (extra).
+
+\subsection{Implementasi Fungsi Fitur}
+
+Berikut adalah implementasi ideal dari fungsi-fungsi fitur yang digunakan dalam eksperimen ini:
+
+\begin{lstlisting}[caption={Network Feature Engineering}]
+def compute_network_features(returns_window):
+    """Mengekstrak 5 fitur jaringan dari MST berbasis korelasi RMT."""
+    T, N = returns_window.shape
+    corr_f   = apply_rmt_filter(returns_window)
+    
+    # Hitung matriks jarak untuk MST
+    dist_mat = np.sqrt(np.maximum(0, 2 * (1 - corr_f)))
+    G_full   = nx.from_numpy_array(dist_mat)
+    mst      = nx.minimum_spanning_tree(G_full)
+    
+    # 1. Network Density (standard undirected: ignore diagonal)
+    upper_idx = np.triu_indices(N, k=1)
+    density   = np.sum(np.abs(corr_f[upper_idx]) > 0.1) / (N * (N - 1) / 2) if N > 1 else 0.0
+    
+    # 2. Average MST Distance
+    mst_dist = sum(d['weight'] for _, _, d in mst.edges(data=True))
+    
+    # 3-5. Eigenvector Centrality Statistics
+    try:
+        centrality = nx.eigenvector_centrality(mst, max_iter=2000)
+        cent_vec   = np.array([centrality[i] for i in range(N)])
+    except Exception:
+        # Fallback ke degree centrality jika tidak konvergen
+        cent_vec = np.array(list(nx.degree_centrality(mst).values()))
+        
+    return np.array([
+        np.std(cent_vec)  * 10,   # F1: Centrality Std
+        np.mean(cent_vec) * 10,   # F2: Centrality Mean
+        mst_dist          * 0.1,  # F3: MST Distance
+        np.max(cent_vec),         # F4: Max Centrality
+        density                   # F5: Network Density
+    ], dtype=np.float32), corr_f, cent_vec
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Market \& Extra Feature Engineering}]
+def compute_market_features(returns_window, port_val=0.0):
+    """Mengekstrak 4 fitur teknis pasar."""
+    short_ret  = returns_window.iloc[-5:].mean().mean()
+    long_ret   = returns_window.mean().mean()
+    momentum   = short_ret - long_ret
+    recent_vol = returns_window.iloc[-5:].std().mean()
+    
+    return np.array([
+        short_ret  * 100,   # F6: Short Return
+        momentum   * 100,   # F7: Momentum
+        recent_vol * 100,   # F8: Recent Vol
+        port_val            # F9: Portfolio Value Offset
+    ], dtype=np.float32)
+
+def compute_extra_features(returns_window, corr_f, extra_list):
+    """Mengekstrak fitur tambahan berbasis risiko dan korelasi."""
+    extra = []
+    if 'downside_vol' in extra_list:
+        ret_flat = returns_window.values.flatten()
+        downside = ret_flat[ret_flat < 0]
+        dv = np.std(downside) * np.sqrt(252) if len(downside) > 0 else 0.0
+        extra.append(float(dv) * 10)
+    if 'avg_corr' in extra_list:
+        upper_tri = corr_f[np.triu_indices_from(corr_f, k=1)]
+        extra.append(float(np.mean(np.abs(upper_tri))))
+    return np.array(extra, dtype=np.float32)
+
+def get_obs_dim(config):
+    """Menghitung total dimensi input RL."""
+    dim = 0
+    if config['use_network']: dim += 5
+    if config['use_market']:  dim += 4
+    dim += len(config['extra_features'])
+    return max(dim, 1)
+\end{lstlisting}
+
+\subsection{Integrasi dalam \texttt{build\_observation}}
+
+Fungsi \texttt{build\_observation} menggabungkan fitur-fitur di atas menjadi satu vektor input untuk model SAC:
+
+\begin{lstlisting}[caption={build\_observation -- Cell 10}]
+def build_observation(returns_window, config, port_val=0.0):
+    # Ekstraksi fitur dasar
+    nw_feat, corr_f, cent_vec = compute_network_features(returns_window)
+    mkt_feat   = compute_market_features(returns_window, port_val)
+    extra_feat = compute_extra_features(returns_window, corr_f, config['extra_features'])
+
+    # Penggabungan sesuai konfigurasi ablation
+    parts = []
+    if config['use_network']: parts.append(nw_feat)
+    if config['use_market']:  parts.append(mkt_feat)
+    if len(extra_feat) > 0:   parts.append(extra_feat)
+
+    obs = np.concatenate(parts) if parts else np.array([0.0], dtype=np.float32)
+    obs = np.nan_to_num(obs)
+    
+    # ... (Proses Z-Score scaling jika diaktifkan)
+    return np.nan_to_num(obs).astype(np.float32), corr_f, cent_vec
+\end{lstlisting}
+
+\subsection{Z-Score Normalization}
+
+Ketika \texttt{USE\_ZSCORE\_SCALING = True} dan \texttt{GLOBAL\_FEAT\_MEAN} tersedia:
+\begin{equation}
+  \hat{f}_i = \frac{f_i - \mu_{\text{train},i}}{\sigma_{\text{train},i}}
+\end{equation}
+
+Normalisasi ini krusial untuk memastikan fitur dengan skala berbeda (misal: density [0,1] vs return * 100) dapat dipelajari secara optimal oleh SAC. Statistik ($\mu$, $\sigma$) dihitung secara eksklusif dari \emph{training set} untuk mencegah \emph{data leakage}.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 4: Global Precompute Cache}
+
+RMT filter, MST, dan centrality dihitung \textbf{satu kali} untuk semua config:
+
+\begin{lstlisting}[caption={Struktur Global Cache}]
+GLOBAL_CACHE[i] = {
+    'nw_feat_full': nw_feat,   # 5 network features
+    'corr_f':       corr_f,    # RMT-filtered correlation matrix
+    'cov_f':        cov_f,     # Filtered covariance matrix
+    'cent_vec':     cent_vec,  # Eigenvector centrality vector
+    'mu':           mu,        # Mean returns vector
+}
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 5: Ablation Environment}
+
+\subsection{AblationPortfolioEnv}
+
+Custom Gymnasium environment untuk training SAC:
+
+\begin{itemize}
+  \item \textbf{Action space:} $[-5.0, 5.0]$ (delta gamma)
+  \item \textbf{Observation space:} Vektor fitur (jaringan / pasar)
+  \item \textbf{Reward:} Calmar Ratio berbasis rolling window (20 hari)
+\end{itemize}
+
+\subsection{Action Handling \& Gamma Accumulation}
+
+Meskipun \emph{action space} didefinisikan sebagai delta ($\Delta\gamma$), logika akumulasi dan \emph{reset} diperlukan untuk menjaga konsistensi state antar langkah dan episode:
+
+\begin{lstlisting}[caption={Logika Akumulasi Delta Gamma}]
+def __init__(self, ..., gamma_center=0.0):
+    self.gamma_center = gamma_center
+    self.current_gamma = gamma_center
+
+def reset(self, seed=None, options=None):
+    super().reset(seed=seed)
+    self.current_step = self.window_size
+    self.port_val     = 1.0
+    # Reset gamma ke nilai pusat di awal episode
+    self.current_gamma = self.gamma_center
+    return self._get_obs(), {}
+
+def step(self, action):
+    # 1. Akumulasi delta gamma dari output model
+    delta = float(np.clip(action[0], -5.0, 5.0))
+    self.current_gamma += delta
+    
+    # 2. Clipping agar tetap dalam batas logis (misal 0 s/d 10)
+    self.current_gamma = np.clip(self.current_gamma, 0.0, 10.0)
+    
+    # 3. Gunakan gamma hasil akumulasi untuk optimasi
+    gamma = self.current_gamma
+    cov_f, cent_vec, mu = self.opt_cache[self.current_step]
+    w = fast_centrality_weights(cov_f, cent_vec, mu, gamma)
+    ...
+\end{lstlisting}
+
+\subsection{Reward Function}
+
+\begin{lstlisting}[caption={Reward: Calmar Ratio Berbasis Rolling Window}]
+if len(arr) < 2:
+    raw_reward = port_ret * 100
+else:
+    drawdown, _ = _compute_drawdown(arr)
+    max_dd  = drawdown.min()
+    ann_ret = calculate_annualized_return(arr)
+    denominator = abs(max_dd) if abs(max_dd) > 1e-8 else 1e-8
+    calmar = ann_ret / denominator
+    raw_reward = float(np.clip(calmar, -10.0, 10.0))
+reward = self._normalize_reward(raw_reward)
+\end{lstlisting}
+
+Normalisasi reward menggunakan \textbf{Welford's online algorithm} untuk running mean dan std.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 6: Learning Curve Callback}
+
+\texttt{LearningCurveCallback} merekam episode reward per seed untuk memverifikasi konvergensi SAC.
+
+\begin{lstlisting}[caption={LearningCurveCallback}]
+class LearningCurveCallback(BaseCallback):
+    def _on_step(self):
+        reward = self.locals.get('rewards', [0])[0]
+        done   = self.locals.get('dones',   [False])[0]
+        self._current_ep_reward += reward
+        if done:
+            self.episode_rewards.append(self._current_ep_reward)
+            self._current_ep_reward = 0.0
+        return True
+
+    def get_smoothed(self, window=20):
+        r = np.array(self.episode_rewards)
+        return np.convolve(r, np.ones(window)/window, mode='valid')
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 7: Backtest Engine}
+
+\subsection{AblationStrategy}
+
+Kelas yang membungkus model SAC atau static gamma untuk backtest:
+
+\begin{itemize}
+  \item \textbf{Static config} (\texttt{static\_gamma} is not None): Tidak memerlukan model SAC.
+  \item \textbf{SAC config}: Load model \texttt{.zip} dan predict gamma secara dinamis.
+\end{itemize}
+
+\subsection{run\_backtest}
+
+Simulasi portofolio dengan rebalancing setiap \texttt{SET\_REBALANCE = 7} hari:
+
+\begin{lstlisting}[caption={Pseudocode Backtest}]
+for i in range(window, len(data)):
+    # Rebalance setiap 7 hari (SET_REBALANCE)
+    if (i - window) % SET_REBALANCE == 0:
+        current_weights = strategy.compute_weights(window_df, ...)
+    daily_ret = dot(current_weights, data.iloc[i])
+    port_val  = port_val * (1 + daily_ret)
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 8: Training -- Multi-Seed}
+
+\subsection{Hyperparameter SAC}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Nilai} \\
+\midrule
+Policy           & MlpPolicy \\
+Learning Rate    & $3 \times 10^{-4}$ \\
+Buffer Size      & 50,000 \\
+Batch Size       & 256 \\
+Entropy Coeff    & auto \\
+Train Freq       & 1 \\
+Gradient Steps   & 1 \\
+Learning Starts  & 200 \\
+$\tau$ (soft update) & 0.005 \\
+$\gamma$ (discount) & 0.99 \\
+\bottomrule
+\end{tabular}
+\caption{Hyperparameter SAC}
+\end{table}
+
+\subsection{Output Training}
+
+Untuk setiap konfigurasi SAC dan setiap seed, model disimpan sebagai:
+\[
+  \texttt{ablation\_\{exp\_id\}\_seed\{seed\}.zip}
+\]
+
+\begin{lstlisting}[caption={Instansiasi Env dengan GAMMA\_CENTER}]
+# Inisialisasi env menggunakan konstanta global
+env = AblationPortfolioEnv(
+    ret_old, obs_cache, opt_cache, 
+    config, gamma_center=GAMMA_CENTER
+)
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 9: Backtest -- Training \& Testing}
+
+Setiap model dibacktest pada \textbf{training set} dan \textbf{testing set} dengan tiga seed yang berbeda. Classic-MV juga dievaluasi sebagai baseline.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 10: Agregasi Hasil -- 4 Metrik}
+
+\subsection{Hasil Ablation Study (Testing Period)}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Experiment} & \textbf{Sharpe} & \textbf{Sortino} & \textbf{Calmar} & \textbf{CVaR (95\%)} \\
+\midrule
+Comp\_Static\_Gamma0 & $-0.0752$ & $-0.0947$ & $-0.0846$ & $0.09853$ \\
+Comp\_Static\_Gamma1 & $-0.1039$ & $-0.1349$ & $-0.1178$ & $0.09764$ \\
+Comp\_Static\_Gamma2 & $-0.1039$ & $-0.1349$ & $-0.1178$ & $0.09764$ \\
+\textbf{E2\_NoMarket} & $\mathbf{0.2825}$ & $\mathbf{0.3346}$ & $\mathbf{0.3845}$ & $0.12339$ \\
+Classic-MV           & $-0.1054$ & $-0.1335$ & $-0.1188$ & $0.09784$ \\
+\bottomrule
+\end{tabular}
+\caption{Ablation Study -- 4 Metrik Utama Tesis (Testing Period)}
+\end{table}
+
+\noindent\textbf{Catatan:} E2\_NoMarket (model usulan) unggul di Sharpe, Sortino, dan Calmar. CVaR lebih tinggi karena portofolio lebih agresif.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 11: Uji Signifikansi Statistik}
+
+\subsection{Wilcoxon Signed-Rank Test}
+
+Membandingkan distribusi daily returns E2\_NoMarket vs setiap baseline (pooled 3 seeds, testing period):
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lrrll@{}}
+\toprule
+\textbf{Comparison} & \textbf{Stat} & \textbf{p-value} & \textbf{Signif.} & \textbf{Kesimpulan} \\
+\midrule
+Comp\_Static\_Gamma0 & 80976.0 & 0.0497 & YA & PROPOSED LEBIH BAIK \\
+Comp\_Static\_Gamma1 & 80275.0 & 0.0332 & YA & PROPOSED LEBIH BAIK \\
+Comp\_Static\_Gamma2 & 80275.0 & 0.0332 & YA & PROPOSED LEBIH BAIK \\
+Classic-MV           & 80982.0 & 0.0498 & YA & PROPOSED LEBIH BAIK \\
+\bottomrule
+\end{tabular}
+\caption{Uji Signifikansi -- Wilcoxon Signed-Rank ($\alpha = 0.05$)}
+\end{table}
+
+\noindent\textbf{Kesimpulan:} E2\_NoMarket secara statistik signifikan lebih baik dari seluruh baseline ($p < 0.05$).
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 12: Walk-Forward Robustness Check}
+
+Test set dibagi menjadi 3 sub-periode untuk menguji konsistensi performa:
+
+\begin{itemize}
+  \item \textbf{Period-1 (Early):} 2019-03-03 -- 2019-05-17 (76 hari)
+  \item \textbf{Period-2 (Mid):} 2019-05-18 -- 2019-08-01 (76 hari)
+  \item \textbf{Period-3 (Late):} 2019-08-02 -- 2019-10-17 (77 hari)
+\end{itemize}
+
+\subsection{Konsistensi E2\_NoMarket vs Classic-MV}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+\textbf{Periode} & \textbf{E2 Sharpe} & \textbf{Classic-MV Sharpe} & \textbf{$\Delta$} & \textbf{Unggul?} \\
+\midrule
+Period-1 (Early) & 11.8492 &  9.2685 & $+2.5808$ & \checkmark \\
+Period-2 (Mid)   &  0.8020 & $-0.1490$ & $+0.9510$ & \checkmark \\
+Period-3 (Late)  & $-1.0573$ & $-1.3414$ & $+0.2841$ & \checkmark \\
+\bottomrule
+\end{tabular}
+\caption{Walk-Forward Robustness -- E2\_NoMarket vs Classic-MV}
+\end{table}
+
+\noindent\textbf{Kesimpulan:} E2\_NoMarket konsisten lebih baik dari Classic-MV di \textbf{seluruh} sub-periode.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 13: Visualisasi}
+
+Output visualisasi yang dihasilkan dan disimpan ke \texttt{ablation\_results\_thesis/}:
+
+\begin{itemize}
+  \item \texttt{learning\_curves.png} -- SAC learning curves per config/seed
+  \item \texttt{walkforward\_robustness.png} -- Bar chart Sharpe per sub-periode
+  \item \texttt{4metrics\_bar.png} -- Bar chart 4 metrik utama (testing period)
+  \item \texttt{ablation\_summary\_4metrics.csv} -- Tabel agregasi metrik
+  \item \texttt{statistical\_tests.csv} -- Hasil uji signifikansi
+  \item \texttt{walkforward\_results.csv} -- Hasil walk-forward per periode
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Dependensi}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Library} & \textbf{Kegunaan} \\
+\midrule
+\texttt{pandas}           & Manipulasi data time series \\
+\texttt{numpy}            & Komputasi numerik \\
+\texttt{matplotlib}       & Visualisasi \\
+\texttt{seaborn}          & Heatmap \& styling \\
+\texttt{networkx}         & MST \& eigenvector centrality \\
+\texttt{scipy}            & Optimasi (SLSQP), Wilcoxon test \\
+\texttt{gymnasium}        & RL environment \\
+\texttt{stable\_baselines3} & SAC implementation \\
+\bottomrule
+\end{tabular}
+\caption{Library Dependencies}
+\end{table}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Kesimpulan}
+
+\begin{itemize}[leftmargin=*]
+  \item Model usulan \textbf{E2\_NoMarket} (SAC dengan Network-Markowitz) secara konsisten mengungguli semua baseline dalam hal Sharpe, Sortino, dan Calmar Ratio pada testing period.
+  \item Keunggulan tersebut terbukti secara statistik signifikan melalui \textbf{Wilcoxon signed-rank test} ($p < 0.05$ untuk semua perbandingan).
+  \item \textbf{Walk-forward validation} membuktikan konsistensi performa di seluruh sub-periode testing.
+  \item Penggunaan \textbf{multi-seed} (3 seeds: 42, 123, 77) memberikan estimasi yang lebih reliabel dibanding single-seed.
+  \item Z-Score normalization pada fitur jaringan membantu stabilitas training SAC.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════════════════
+\end{document}

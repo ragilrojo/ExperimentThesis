@@ -1,0 +1,435 @@
+\documentclass[12pt,a4paper]{article}
+
+% Paket yang diperlukan
+\usepackage[utf8]{inputenc}
+\usepackage[bahasa]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{booktabs}
+\usepackage{float}
+
+% Informasi dokumen
+\title{\textbf{Model Jaringan untuk Meningkatkan Manajemen Portofolio Cryptocurrency Otomatis}}
+
+\author{
+Paolo Giudici$^{1*}$, Paolo Pagnottoni$^{1*}$, dan Gloria Polinesi$^{2}$ \\
+\\
+\small $^{1}$Departemen Ekonomi dan Manajemen, Universitas Pavia, Pavia, Italia \\
+\small $^{2}$Departemen Ekonomi dan Ilmu Sosial, Università Politecnica delle Marche, Ancona, Italia \\
+\\
+\small *Korespondensi: paolo.giudici@unipv.it; paolo.pagnottoni01@universitadipavia.it
+}
+
+\date{Diterima: 6 November 2019 | Disetujui: 24 Maret 2020 | Diterbitkan: 24 April 2020}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Penggunaan cryptocurrency, bersama dengan konsultasi keuangan otomatis, berkembang pesat dalam beberapa tahun terakhir. Namun, layanan konsultasi otomatis belum mengeksploitasi potensi pasar yang baru muncul ini, yang mewakili kelas produk keuangan inovatif yang dapat diusulkan oleh robo-advisor. Untuk alasan ini, kami mengusulkan pendekatan baru untuk membangun strategi alokasi portofolio yang efisien yang melibatkan instrumen keuangan yang volatil, seperti cryptocurrency. Dengan kata lain, kami mengembangkan perluasan dari model Markowitz tradisional yang menggabungkan Teori Matriks Acak (Random Matrix Theory) dan ukuran jaringan, untuk mencapai bobot portofolio yang meningkatkan profil risiko-pengembalian portofolio. Hasil penelitian menunjukkan bahwa secara keseluruhan model kami mengungguli beberapa alternatif yang bersaing, sambil mempertahankan tingkat risiko yang relatif rendah.
+\end{abstract}
+
+\textbf{Kata kunci:} cryptocurrency, jaringan korelasi, sentralitas jaringan, optimisasi portofolio, teori matriks acak, pohon rentang minimal
+
+\section{Pendahuluan}
+
+Inovasi FinTech berkembang pesat saat ini, dengan aplikasi termasuk pembayaran, pinjaman, asuransi dan manajemen aset, antara lain. Dua laporan teknis dari Financial Stability Board (FSB)\cite{fsb2017a,fsb2017b} menetapkan beberapa pendorong utama untuk FinTech, yaitu, pergeseran preferensi konsumen di sisi permintaan, perubahan regulasi keuangan di sisi penawaran dan evolusi teknologi.
+
+Dalam konteks ini, layanan konsultasi keuangan otomatis berkembang luas dan, khususnya robo-advisor\footnote{Sebuah artikel yang diterbitkan di "Statista" pada tahun 2019 menyatakan bahwa aset yang dikelola dalam segmen robo-advisory berjumlah sekitar 981 miliar USD, serta bahwa mereka diperkirakan akan tumbuh pada tingkat pertumbuhan tahunan (CAGR 2019-2023) sebesar 27\% (sumber: https://www.statista.com/outlook/337/100/robo-advisors/worldwide).}. Mereka seharusnya mencocokkan profil risiko investor dengan kelas spesifik aset keuangan dan dengan demikian membangun alokasi portofolio yang efisien untuk setiap klien tertentu. Namun, mekanisme yang mendasari konstruksi portofolio seringkali tidak jelas, serta mereka bisa dibilang tidak memperhitungkan secara tepat ketergantungan multivariat di antara sekuritas yang merupakan kunci untuk mencapai diversifikasi dan, oleh karena itu, mengurangi risiko keuangan. Ini terutama benar ketika berurusan dengan pasar yang sangat volatil, seperti pasar cryptocurrency, yang bisa menjadi salah satu target pasar masa depan robo-advisor, mengingat pengaruhnya yang berkembang pesat di dunia keuangan.
+
+Memang, setelah diperkenalkan oleh Nakamoto (2008)\cite{nakamoto2008}, Bitcoin diluncurkan online pada tahun 2009 dan membuka jalan bagi banyak cryptocurrency lainnya. Faktanya, per 17 Oktober 2019, kapitalisasi pasar cryptocurrency berjumlah $\sim$220 miliar USD, dengan volume perdagangan harian sekitar 52 miliar USD.
+
+Seiring dengan studi deskriptif dan kualitatif, banyak penelitian berurusan dengan analisis kuantitatif yang diterapkan pada pasar cryptocurrency. Secara khusus, aliran penelitian berfokus pada penemuan harga di pasar Bitcoin, yang bertujuan untuk menentukan mana yang merupakan pemimpin dan pengikut dari proses pembentukan harga Bitcoin (lihat Brandvold dkk., 2015\cite{brandvold2015}; Pagnottoni dan Dimpfl, 2018\cite{pagnottoni2018}; Giudici dan Abu-Hashish, 2019\cite{giudici2019a}). Penelitian terkait lainnya mempelajari keterkaitan dan spillover di pasar cryptocurrency (seperti Corbet dkk., 2018b\cite{corbet2018b}; Giudici dan Pagnottoni, 2019a,b\cite{giudici2019b,giudici2019c}). Area penting lainnya berkaitan dengan studi derivatif Bitcoin—yaitu, opsi dan futures yang ditulis pada Bitcoin, dengan studi yang dilakukan oleh Corbet dkk. (2018a)\cite{corbet2018a}, Baur dan Dimpfl (2019)\cite{baur2019}, Giudici dan Polinesi (2019)\cite{giudici2019d}, dan Pagnottoni (2019)\cite{pagnottoni2019}.
+
+Dari sudut pandang metodologis, kami mendasarkan analisis kami pada aliran literatur penting, yang berfokus pada jaringan saham dan keuangan yang dibangun pada matriks korelasi. Makalah seminal oleh Mantegna (1999)\cite{mantegna1999} menggunakan matriks korelasi untuk menyimpulkan struktur hierarki pasar saham, menurunkan ukuran jarak berdasarkan matriks korelasi dan membangun apa yang disebut Pohon Rentang Minimal (Minimal Spanning Tree - MST), representasi grafis yang mampu menghubungkan aset yang serupa dalam hal pengembalian secara berpasangan. Setelah itu, penelitian oleh Tola dkk. (2008)\cite{tola2008} menggunakan Teori Matriks Acak (RMT) bersama dengan beberapa teknik clustering dan menunjukkan bahwa ini secara signifikan menurunkan risiko portofolio. Selanjutnya, makalah lain tentang konstruksi portofolio yang melibatkan struktur jaringan aset keuangan menyusul (lihat Zhan dkk., 2015\cite{zhan2015}; León dkk., 2017\cite{leon2017}; Raffinot, 2017\cite{raffinot2017}; Ren dkk., 2017\cite{ren2017}).
+
+Sepengetahuan kami, belum ada makalah yang mengeksploitasi topologi jaringan untuk membangun portofolio yang terdiri dari cryptocurrency. Kami mengisi kesenjangan ini dengan mengusulkan model yang mengeksploitasi struktur jaringan cryptocurrency untuk memberikan alokasi aset portofolio yang dibandingkan dengan baik dengan yang tradisional. Mengikuti Mantegna (1999)\cite{mantegna1999} kami menggunakan alokasi aset Markowitz sebagai tolok ukur, dan kami memeriksa apakah proposal kami mampu meningkatkannya, dalam hal profil risiko/pengembalian.
+
+Memang, orisinalitas makalah saat ini adalah 2 kali lipat. Dari sudut pandang metodologis, kami meningkatkan strategi alokasi portofolio Markowitz (1952)\cite{markowitz1952} tradisional dengan menggunakan RMT dan MST dan dengan mempertimbangkan sentralitas jaringan secara khusus. Selain itu, melalui teknik ini kami dapat mengatur parameter keengganan risiko sistemik yang dapat disesuaikan investor untuk lebih mencocokkan strategi investasi mereka dengan profil risiko mereka sendiri. Dari sudut pandang empiris, kami menerapkan metodologi kami pada data yang berasal dari pasar yang baru lahir dan sangat volatil, yaitu, pasar cryptocurrency. Ini sangat menarik, karena pasar cryptocurrency berkembang pesat dan peluangnya karena ketidakpastian tinggi (dan volatilitas) di sekitarnya cukup menarik, dan dengan demikian jumlah investor yang lebih besar kemungkinan akan memasukinya dalam jangka pendek.
+
+Temuan empiris kami mengonfirmasi efektivitas model kami dalam mencapai kinerja portofolio kumulatif yang lebih baik, sambil menjaga tingkat risiko yang relatif rendah. Secara khusus, kami menunjukkan bahwa model yang kami usulkan yang menggunakan RMT, MST dan ukuran sentralitas dengan cepat beradaptasi dengan kondisi pasar, dan mampu menghasilkan kinerja yang memuaskan selama periode pasar bullish. Selama periode pasar bearish—sebaliknya—model Markowitz Jaringan kami yang menggunakan RMT dan MST mewujudkan kinerja terbaik, melindungi investor dari kerugian yang relatif tinggi yang sebaliknya dihasilkan oleh banyak strategi alokasi aset lain yang diuji. Selain itu, risiko strategi kami masih lebih rendah dari sebagian besar model bersaing yang kami analisis.
+
+Hasil ini menunjukkan bahwa kombinasi yang baik dari model yang diusulkan harus digunakan untuk mencapai strategi alokasi cryptocurrency yang efisien, yang juga dapat digunakan sebagai kotak alat robo-advisory untuk meningkatkan konsultasi keuangan otomatis.
+
+Makalah ini berlanjut sebagai berikut. Bagian 2 menyajikan metodologi kami dan, khususnya, Teori Matriks Acak, Pohon Rentang Minimal dan konstruksi portofolio. Bagian 3 mengilustrasikan hasil empiris kami. Bagian 4 menyimpulkan.
+
+\section{Metodologi}
+
+\subsection{Teori Matriks Acak}
+
+Teori Matriks Acak (Random Matrix Theory - RMT) secara luas digunakan di beberapa bidang, seperti mekanika kuantum (Beenakker, 1997)\cite{beenakker1997}, fisika materi padat (Guhr dkk., 1998)\cite{guhr1998}, komunikasi nirkabel (Tulino dkk., 2004)\cite{tulino2004}, serta ekonomi dan keuangan (Potters dkk., 2005)\cite{potters2005}. Teknik ini mampu menghilangkan komponen kebisingan dari sinyal murni yang tertanam dalam matriks korelasi.
+
+Algoritma menguji eigenvalue empiris berturut-turut dari matriks korelasi: $\lambda_k < \lambda_{k+1}$; $k = 1, \ldots, n$, terhadap hipotesis nol bahwa mereka sama dengan eigenvalue dari matriks Wishart acak $R = \frac{1}{T}AA^T$ dengan ukuran yang sama, dengan $A$ adalah matriks $N \times T$ yang berisi $N$ deret waktu dengan panjang $T$. Elemen-elemen $A$ adalah variabel acak i.i.d., dengan mean nol dan varians satu.
+
+Marchenko dan Pastur (1967)\cite{marchenko1967} menunjukkan bahwa ketika $N \to \infty$ dan $T \to \infty$, dan rasio $Q = \frac{T}{N} \geq 1$ tetap, ada konvergensi dari kepadatan eigenvalue sampel ke:
+
+\begin{equation}
+f(\lambda) = \frac{T}{2\pi} \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{\lambda},
+\end{equation}
+
+dengan $\lambda \in (\lambda_-, \lambda_+)$, $\lambda_{\pm} = 1 + \frac{1}{Q} \pm 2\sqrt{\frac{1}{Q}}$.
+
+Dengan demikian, jika $\lambda_k > \lambda_+$ hipotesis nol ditolak dari eigenvalue ke-$k$ dan seterusnya. Oleh karena itu, melalui dekomposisi nilai singular pendekatan RM membangun matriks korelasi yang difilter (lihat Eom dkk., 2009)\cite{eom2009}.
+
+Dalam kasus spesifik kami, pertimbangkan deret waktu pengembalian log kontinu $r_i$ dari cryptocurrency generik $i$ pada titik waktu $t$ mana pun, yaitu,
+
+\begin{equation}
+r_i^t = \log P_i^t - \log P_i^{t-1},
+\end{equation}
+
+di mana $P_i^t$ adalah harga cryptocurrency $i$ pada waktu $t$.
+
+Mempertimbangkan sekelompok $N$ deret waktu pengembalian cryptocurrency, misalkan $C$ adalah matriks korelasi $N \times N$ dari deret waktu pengembalian cryptocurrency. Pendekatan matriks acak memfilter matriks korelasi, sehingga memperoleh matriks baru $C^*$ sebagai:
+
+\begin{equation}
+C^* = V\Lambda V^T,
+\end{equation}
+
+dengan 
+\[
+\Lambda = 
+\begin{cases}
+0 & \lambda_i < \lambda_+ \\
+\lambda_i & \lambda_i \geq \lambda_+
+\end{cases}
+\]
+
+dan $V$ adalah matriks dari eigenvector yang menyimpang terkait dengan eigenvalue yang lebih besar dari $\lambda_+$.
+
+\subsection{Pohon Rentang Minimal}
+
+Untuk menyederhanakan hubungan yang diberikan oleh matriks korelasi yang difilter $C^*$ yang diperoleh dari pendekatan matriks acak, kami menerapkan representasi Pohon Rentang Minimal dari deret waktu pengembalian cryptocurrency. Ini konsisten dengan literatur tentang kesamaan saham (yaitu, Mantegna dan Stanley, 1999\cite{mantegna1999b}; Bonanno dkk., 2003\cite{bonanno2003}; Spelta dan Araújo, 2012\cite{spelta2012}).
+
+Diberikan matriks korelasi yang difilter yang diperoleh pada langkah di atas, kita dapat menurunkan jarak Euclidean untuk setiap elemen korelasi berpasangan dalam matriks, yaitu,
+
+\begin{equation}
+d_{ij} = \sqrt{2 - 2c_{ij}^*},
+\end{equation}
+
+di mana $c_{ij}^*$ adalah elemen generik $(i, j)$ dari matriks $C^*$, dengan $i, j = 1, \ldots, N$. Setiap jarak berpasangan dapat dimasukkan ke dalam apa yang disebut matriks jarak $D = \{d_{ij}\}$. Algoritma MST mampu mengurangi jumlah tautan antara aset dari $\frac{N(N-1)}{2}$ menjadi $N - 1$ yang menghubungkan setiap node ke tetangga terdekatnya. Secara khusus, kami awalnya mempertimbangkan $N$ kluster yang terkait dengan $N$ cryptocurrency dan, pada setiap langkah berikutnya, kami menggabungkan dua kluster generik $l_i$ dan $l_j$ jika:
+
+\[
+d(l_i, l_j) = \min\{d(l_i, l_j)\},
+\]
+
+dengan jarak antara kluster didefinisikan sebagai:
+
+\[
+\hat{d}(l_i, l_j) = \min\{d_{pq}\},
+\]
+
+dengan $p \in l_i$ dan $q \in l_j$. Prosedur ini diulang secara iteratif sampai kita tetap dengan hanya satu kluster di tangan.
+
+Selain itu, dengan tujuan menjelaskan evolusi hubungan dari waktu ke waktu, Spelta dan Araújo (2012)\cite{spelta2012} mengusulkan apa yang disebut koefisien residualitas, yang membandingkan kekuatan relatif dari koneksi di atas dan di bawah nilai ambang jarak, yaitu,
+
+\begin{equation}
+R = \frac{\sum_{d_{i,j} > L} d_{i,j}^{-1}}{\sum_{d_{i,j} \leq L} d_{i,j}^{-1}}
+\end{equation}
+
+dengan $L$ adalah nilai jarak ambang tertinggi yang memastikan konektivitas MST. Secara intuitif, koefisien residualitas $R$ meningkat ketika jumlah tautan meningkat—yang berarti jaringan menjadi lebih jarang, dan sebaliknya menurun dengan penurunan jumlah tautan.
+
+\subsection{Ukuran Sentralitas Jaringan}
+
+Dalam makalah ini kami menggunakan ukuran sentralitas untuk mengembangkan alokasi portofolio yang memperhitungkan sentralitas node (cryptocurrency) dalam sistem. Teori jaringan mencakup beberapa ukuran sentralitas, seperti sentralitas derajat, menghitung berapa banyak tetangga yang dimiliki node, serta ukuran sentralitas berdasarkan sifat spektral dari grafik (lihat Perra dan Fortunato, 2008)\cite{perra2008}. Di antara ukuran sentralitas spektral kami tandai sentralitas Katz (lihat Katz, 1953)\cite{katz1953}, PageRank (Brin dan Page, 1998)\cite{brin1998}, sentralitas hub dan authority (Kleinberg, 1999)\cite{kleinberg1999}, dan sentralitas eigenvector (Bonacich, 2007)\cite{bonacich2007}.
+
+Dalam makalah ini kami menggunakan sentralitas eigenvector, karena mengukur pentingnya node dalam jaringan dengan menetapkan skor relatif untuk semua node dalam jaringan. Skor relatif didasarkan pada prinsip bahwa terhubung ke beberapa node dengan skor tinggi berkontribusi lebih banyak pada skor node yang dimaksud daripada koneksi yang sama ke node dengan skor rendah. Dengan kata lain, mempertimbangkan node generik $i$, skor sentralitas sebanding dengan jumlah skor dari semua node yang terhubung dengannya, yaitu,
+
+\begin{equation}
+x_i = \frac{1}{\lambda} \sum_{j=1}^{N} \hat{d}_{i,j} x_j
+\end{equation}
+
+di mana $x_j$ adalah skor node $j$, $\hat{d}_{i,j}$ adalah elemen $(i, j)$ dari matriks adjacency jaringan, $\lambda$ adalah konstanta. Persamaan dari atas dapat ditulis ulang dalam bentuk kompak sebagai:
+
+\begin{equation}
+\hat{D}x = \lambda x
+\end{equation}
+
+di mana $\hat{D}$ adalah matriks adjacency, $\lambda$ adalah eigenvalue dari matriks $\hat{D}$, dengan eigenvector terkait $x$, vektor skor berdimensi $N$, yang berarti satu elemen untuk setiap node. Perhatikan bahwa karena jaringan kami didasarkan pada jarak antara pengembalian, semakin tinggi ukuran sentralitas yang terkait dengan node, semakin banyak node berperilaku berbeda sehubungan dengan node lain dalam jaringan.
+
+\subsection{Konstruksi Portofolio}
+
+Korelasi aset adalah item kunci dalam teori investasi dan pengukuran risiko, khususnya untuk masalah optimisasi seperti dalam kasus teori portofolio yang banyak dikenal yang dijelaskan oleh Markowitz (1952)\cite{markowitz1952}. Akibatnya, grafik berbasis korelasi adalah alat yang berguna untuk membangun strategi investasi optimal. Dalam subseksi ini kami menunjukkan bagaimana konstruksi portofolio dapat ditingkatkan melalui kombinasi RMT, MST, dan ukuran sentralitas jaringan yang dijelaskan di atas.
+
+Beberapa penelitian telah menyelidiki hubungan antara struktur jaringan aset keuangan dan strategi portofolio. Studi Onnela dkk. (2003)\cite{onnela2003} menunjukkan bagaimana portofolio yang dibangun melalui teori Markowitz terutama terdiri dari aset yang terletak di pinggiran struktur jaringan aset, yaitu, aset node luar, dan bukan di intinya. Pozzi dkk. (2013)\cite{pozzi2013} menemukan bahwa aset periferal dalam jaringan menghasilkan kinerja yang lebih baik dan risiko portofolio yang lebih rendah sehubungan dengan yang sentral. Peralta dan Zareei (2016)\cite{peralta2016} menunjukkan bahwa sentralitas aset dalam jaringan berhubungan negatif dengan bobot optimal yang diperoleh melalui teknik Markowitz. Membangun pada itu, Vyrost dkk. (2018)\cite{vyrost2018} menyimpulkan bahwa strategi alokasi aset termasuk struktur jaringan aset keuangan mampu meningkatkan profil risiko-pengembalian portofolio.
+
+Aliran literatur lain berfokus pada mengusulkan strategi alokasi portofolio alternatif berdasarkan struktur jaringan aset keuangan. Untuk mengilustrasikan, Plerou dkk. (2002)\cite{plerou2002} dan Conlon dkk. (2007)\cite{conlon2007} menggunakan teori matriks acak untuk memfilter matriks korelasi yang akan dimasukkan dalam masalah minimisasi Markowitz, sementara Tola dkk. (2008)\cite{tola2008} menambahkan MST memperoleh perbaikan sehubungan dengan model mentah.
+
+Dalam konteks ini kami bertujuan untuk mempelajari perbedaan dalam profil risiko-pengembalian strategi kami, yang mencakup ukuran topologi dalam masalah optimisasi, sehubungan dengan model Markowitz tradisional, yang mungkin menghasilkan karakteristik risiko-pengembalian yang lebih baik dari portofolio. Orisinalitas pendekatan kami dibangun pada fakta bahwa kami tidak hanya menggunakan RMT dan MST sebagai pendekatan alternatif untuk mengukur diversifikasi risiko, tetapi kami menggunakan perluasan metode Markowitz tradisional dengan memasukkan teknik-teknik ini dalam masalah minimisasi. Memang, dalam kasus ini kami ingin menyelesaikan masalah berikut:
+
+\begin{equation}
+\min_w w^T \Sigma^* w + \gamma \sum_{i=1}^{n} x_i w_i
+\end{equation}
+
+dengan kendala:
+\begin{align*}
+&\sum_{i=1}^{n} w_i = 1 \\
+&\mu_P \geq \frac{\sum_{i=1}^{n} \mu_i}{n} \\
+&w_i \geq 0
+\end{align*}
+
+di mana $w$ adalah vektor bobot portofolio, dengan $w_i$ adalah bobot yang terkait dengan cryptocurrency $i$, $\Sigma^*$ adalah matriks varians-kovarians yang difilter dengan elemen generik $(i, j)$ diwakili oleh $\sigma_i \sigma_j c_{i,j}^*$, $\gamma$ adalah parameter yang mewakili keengganan risiko investor, $x_i$ adalah sentralitas eigenvector yang terkait dengan cryptocurrency $i$, $\mu_P$ menunjukkan pengembalian portofolio dan $\mu_i$ pengembalian cryptocurrency generik $i$.
+
+Secara umum, portofolio yang dibangun berdasarkan teori Markowitz tradisional adalah sedemikian rupa sehingga risiko diminimalkan untuk pengembalian yang diharapkan tertentu, menggunakan sebagai input matriks varians-kovarians mentah dari pengembalian. Dalam kasus kami, peningkatan metodologis adalah 2 kali lipat. Pertama, kami memodifikasi matriks varians-kovarians input, yang difilter oleh RMT dan MST. Kedua, kami menambahkan komponen yang berasal dari struktur MST yang berhubungan dengan komponen risiko tambahan yang mungkin ingin dikontrol oleh investor. Memang, dengan memodulasi $\gamma$ investor dapat mengatur tingkat keengganan risikonya sendiri terhadap risiko sistemik khususnya, dan tidak hanya terhadap risiko portofolio seperti dalam kerangka Markowitz. Faktanya, menjadi sentralitas berbanding terbalik dengan jarak, nilai kecil $\gamma$ menghasilkan portofolio yang terdiri dari cryptocurrency yang kurang berisiko secara sistemik, yang umumnya terletak di bagian periferal jaringan. Sebaliknya, nilai besar $\gamma$ membuat algoritma memilih cryptocurrency yang lebih relevan secara sistemik, yang berarti mereka yang berada di pusat struktur jaringan. Demi kelengkapan, kami akan menguji nilai yang berbeda dari parameter keengganan risiko sistemik dalam aplikasi saat ini.
+
+Mulai dari deret waktu pengembalian cryptocurrency, langkah-langkah algoritma dapat diringkas sebagai berikut:
+
+\begin{enumerate}
+\item Estimasi matriks korelasi yang difilter $C^*$ dengan RMT
+\item Pengurangan jumlah tautan dalam matriks korelasi yang difilter $C^*$ dengan MST
+\item Perhitungan matriks varians-kovarians yang difilter $\Sigma^*$ yang terkait dengan matriks korelasi yang difilter $C^*$ pada langkah 2
+\item Perhitungan sentralitas eigenvector $x_i$
+\item Perhitungan bobot portofolio dengan menyelesaikan masalah minimisasi:
+\[
+\min_w w^T \Sigma^* w + \gamma \sum_{i=1}^{n} x_i w_i \quad \text{dengan} \quad \begin{cases}
+\sum_{i=1}^{n} w_i = 1 \\
+\mu_P \geq \frac{\sum_{i=1}^{n} \mu_i}{n} \\
+w_i \geq 0
+\end{cases}
+\]
+\end{enumerate}
+
+Perhitungan bobot akhirnya menghasilkan pengembalian portofolio yang kami gunakan untuk mengevaluasi kinerja metode alokasi kami.
+
+\section{Temuan Empiris}
+
+\subsection{Deskripsi Data dan Analisis Topologi Jaringan}
+
+Dalam aplikasi empiris kami, kami mempertimbangkan 10 deret waktu pengembalian yang dirujuk pada cryptocurrency yang diperdagangkan selama periode 14 September 2017–17 Oktober 2019 (764 pengamatan harian). Secara khusus, kami mempertimbangkan 10 cryptocurrency pertama dalam hal kapitalisasi pasar per 17 Oktober 2019\footnote{Kami mengecualikan Bitcoin SV (BSV) untuk mencapai rentang waktu yang cukup besar, yang berarti periode waktu lebih dari 2 tahun.}. Tepatnya, kami menganalisis deret waktu pengembalian dari cryptocurrency berikut: Bitcoin (BTC), Ethereum (ETH), Ripple (XRP), Tether (USDT), Bitcoin Cash (BCH), Litecoin (LTC), Binance Coin (BNB), Eos (EOS), Stellar (XLM), Tron (TRX).
+
+Kami menyediakan beberapa statistik deskriptif dasar dari data kami dalam Tabel \ref{tab:summary}. Dari Tabel \ref{tab:summary} orang dapat melihat bahwa pengembalian harian rata-rata semuanya mendekati nol, sejalan dengan teori ekonomi umum mengenai pengembalian aset. Namun, 10 cryptocurrency menunjukkan deviasi standar yang berbeda, yang berarti bahwa variabilitas dalam pengembalian berbeda cukup kuat di antara cryptocurrency. Untuk mengilustrasikan, USDT adalah yang menunjukkan variabilitas relatif terendah; ini sejalan dengan fakta bahwa cryptocurrency ini diklasifikasikan sebagai stable coin, oleh karena itu harganya seharusnya tidak menyimpang terlalu banyak setiap hari. Di sisi lain, TRX adalah yang menunjukkan deviasi standar tertinggi; memang, cryptocurrency tertentu ini menyaksikan periode fluktuasi tinggi selama periode sampel yang dipertimbangkan. Sejauh menyangkut kurtosis, sebagian besar cryptocurrency menunjukkan nilai yang mencerminkan perilaku non-Gaussian dan heavy tailed dari distribusi terkaitnya. Ini terutama berlaku untuk XLM dan XRP, yang kurtosisnya relatif lebih besar daripada deret waktu lainnya.
+
+\begin{table}[H]
+\centering
+\caption{Statistik ringkasan}
+\label{tab:summary}
+\begin{tabular}{lcccc}
+\toprule
+ & Mean & Std & Kurtosis & Skewness \\
+\midrule
+BTC & 0.0009 & 0.04 & 3.35 & $-0.07$ \\
+ETH & $-0.0007$ & 0.05 & 2.90 & $-0.33$ \\
+XRP & 0.0004 & 0.07 & 15.73 & 1.80 \\
+USDT & 0.0000 & 0.01 & 4.28 & 0.22 \\
+BCH & $-0.0011$ & 0.08 & 6.47 & 0.49 \\
+LTC & $-0.0003$ & 0.06 & 8.02 & 0.66 \\
+BNB & 0.0033 & 0.07 & 7.74 & 0.78 \\
+EOS & 0.0017 & 0.07 & 3.93 & 0.60 \\
+XLM & 0.0021 & 0.10 & 26.19 & 2.03 \\
+TRX & 0.0021 & 0.15 & 13.15 & 0.66 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Untuk menerapkan filter melalui RMT, kami membagi dataset menjadi jendela yang tumpang tindih berturut-turut dengan lebar $T = 120$ (4 bulan perdagangan). Kami mengatur panjang langkah jendela menjadi 1 minggu (7 hari perdagangan), yang membentuk total 93 jendela 4 bulan mingguan.
+
+Untuk setiap jendela waktu yang dipertimbangkan, kami menggunakan 15 minggu pengamatan harian untuk memperkirakan model, sementara minggu terakhir digunakan untuk tujuan validasi. Dengan kata lain, kami menghitung 93 matriks korelasi antara 10 deret waktu pengembalian cryptocurrency, masing-masing berdasarkan 15 minggu pengembalian harian dan kemudian memfilternya dengan menggunakan pendekatan Matriks Acak. Menerapkan penyaringan Matriks Acak, matriks korelasi dibangun kembali dengan hanya mempertimbangkan eigenvector yang sesuai dengan eigenvalue yang menyimpang.
+
+Untuk mendapatkan pemahaman yang lebih baik tentang tautan yang ada antara cryptocurrency, matriks korelasi yang difilter kemudian digunakan untuk menurunkan representasi MST selama dua periode utama yang menarik. Secara khusus, kami memplot struktur MST yang muncul dari periode hype harga cryptocurrency (September 2017–Januari 2018), sementara struktur MST terkait dengan periode perdagangan terbaru yang dianalisis (Juni 2019–Oktober 2019).
+
+Seperti yang jelas dari grafik, kedua jaringan menunjukkan fitur yang cukup mirip. Memang, ETH adalah cryptocurrency yang selalu terletak di pusat struktur, menunjukkan peran sentralnya di pasar cryptocurrency. Satu-satunya perbedaan antara dua representasi grafis menyangkut USDT, yang selama hype harga tidak terhubung langsung ke ETH seperti cryptocurrency lainnya, tetapi ke LTC. Ini terkait dengan fakta bahwa USDT adalah stable coin dan, oleh karena itu, berperilaku berbeda dari cryptocurrency lain yang dipertimbangkan, jauh lebih tidak volatil. Namun, perbedaan dalam perilaku ini merata selama periode terakhir.
+
+Untuk lebih memahami dinamika MST di antara cryptocurrency, kami menyelidiki evolusi tautan dari waktu ke waktu. Memang, kami menghitung dua ukuran berbeda: Max link, yaitu, nilai jarak maksimum antara dua pasang node dalam pohon, dan koefisien residualitas, yang berarti rasio antara jumlah tautan yang dijatuhkan dan jumlah yang disimpan oleh algoritma MST. 
+
+Dari grafik dapat dilihat bahwa Max link meningkat selama hype harga Bitcoin dan berfluktuasi sekitar nilai yang relatif besar sampai kira-kira pertengahan 2018, yang berarti bahwa selama periode ini korelasi antara pengembalian cryptocurrency sangat tidak selaras. Setelah itu, indeks memantul kembali ke nilai sebelumnya dan bahkan di bawahnya, menunjukkan bahwa pengembalian cryptocurrency mulai berperilaku lebih mirip selama periode terakhir. Selain itu, koefisien residualitas meningkat selama periode awal sampel, sementara menurun tajam selama fase hype harga. Setelah penurunan, koefisien tetap cukup stabil dan kemudian meningkat dengan lembut tidak tanpa fluktuasi dari pertengahan 2018 hingga akhir periode sampel. Ini menunjukkan bahwa jumlah tautan sampai pertengahan 2018 cukup terbatas, dan oleh karena itu, pengembalian tidak selaras, sedangkan jumlah yang sama mulai meningkat setelah fase itu, yang berarti ada lebih banyak koneksi dan dengan demikian lebih banyak sinkronisitas di seluruh pengembalian cryptocurrency.
+
+\subsection{Konstruksi Portofolio}
+
+Dalam subseksi ini kami mengilustrasikan hasil terkait dengan strategi portofolio yang diusulkan. Bobot portofolio optimal diperoleh melalui minimisasi terbatas dari fungsi objektif dalam Persamaan (8). Demi kelengkapan, kami menggunakan nilai yang berbeda dari parameter keengganan risiko sistemik $\gamma$, yaitu $\gamma = 0.005, 0.025, 0.05, 0.15, 0.7, 1$. Nilai-nilai ini telah dipilih, tanpa kehilangan generalitas, untuk mewakili profil keengganan yang berbeda. Sementara $\gamma = 0$ menunjukkan tidak ada keengganan, $\gamma = 1$ menunjukkan keengganan tinggi, dengan risiko sistemik diberikan kepentingan yang sama dengan yang non-sistemik.
+
+Kami menggunakan lima belas minggu untuk menghitung bobot portofolio optimal seperti yang dijelaskan di bagian 2. Kami kemudian menggunakan minggu terakhir yang terkait dengan setiap jendela untuk mengevaluasi kinerja out-of-sample dari teknik kami, yang berarti untuk menghitung pengembalian portofolio dan, oleh karena itu, Laba Rugi yang dihasilkan. Kami kemudian menghitung pengembalian portofolio untuk periode 7 Januari 2018--17 Oktober 2019, dengan memperhitungkan biaya rebalancing, yang seharusnya berjumlah 10 basis poin.
+
+Hasil kami membandingkan kinerja strategi investasi kami untuk nilai $\gamma$ yang berbeda serta untuk $\gamma = 0$ (Network Markowitz), yang berarti hasil dari strategi portofolio Markowitz menggunakan matriks varians-kovarians yang difilter oleh RMT dan MST. Dalam melakukannya, kami memplot kinerja portofolio di bawah hipotesis berinvestasi 100 USD pada awal periode, dan memeriksa berapa banyak yang hilang seiring waktu. Hasil strategi kami dibandingkan dengan kinerja beberapa strategi dan indikator: portofolio benchmark (CRIX\footnote{CRIX adalah indeks pasar cryptocurrency yang mengikuti metodologi Laspeyres untuk konstruksi indeks. Informasi lebih lanjut tentang CRIX dapat ditemukan di https://thecrix.de/}), portofolio Markowitz dengan matriks varians-kovarians yang difilter oleh teknik Glasso\footnote{Parameter sparsity $\rho$ telah ditetapkan pada 0.01, seperti dalam makalah referensi oleh Friedman dkk. (2008).} (Glasso Markowitz), portofolio naif (Equally Weighted) dan portofolio Markowitz tradisional (Classical Markowitz).
+
+Secara keseluruhan, kami mempertimbangkan periode di mana pasar cryptocurrency menyaksikan periode turun—kecuali untuk bagian pertama dari rentang waktu yang kami analisis dan beberapa periode pendek yang terjadi secara konsekuen. Oleh karena itu, karena pasar tidak menguntungkan selama periode yang dipelajari, kami bertujuan untuk mencapai melalui strategi alokasi kami kerugian yang lebih rendah dari yang dihasilkan oleh metodologi bersaing lainnya.
+
+Di satu sisi, selama fase pertama yang berlangsung kira-kira sampai pertengahan 2018, portofolio Markowitz tradisional tampaknya mengungguli strategi alokasi portofolio lainnya. Memang, alokasi dengan teknik Markowitz menghasilkan pengembalian (kumulatif) positif sampai Januari 2018 dan hanya sedikit negatif sampai Mei 2018, namun masih lebih rendah dari kerugian yang diberikan oleh strategi lain dalam hal absolut.
+
+Di sisi lain, dari September 2018 dan seterusnya semua portofolio mulai memberikan pengembalian negatif yang kuat. Memang, pengembalian yang dihasilkan oleh portofolio yang dibangun melalui Markowitz mulai menurun secara dramatis, bersama dengan model yang mencakup parameter keengganan risiko sistemik. Ini karena model terakhir memperhitungkan sentralitas cryptocurrency dalam jaringan dan oleh karena itu lebih adaptif terhadap kondisi pasar, terlepas dari apakah mereka menguntungkan atau tidak. Memang dapat dilihat bahwa—secara keseluruhan—selama periode pasar bullish model kami yang memperhitungkan keengganan risiko bereaksi sangat cepat terhadap gerakan ke atas dan menghasilkan kinerja kumulatif yang baik; sebaliknya, selama periode pasar turun, model yang sama menghasilkan kinerja relatif yang lebih buruk karena kondisi pasar yang menurun.
+
+Namun, selama paruh kedua periode sampel kami model yang kami usulkan dengan parameter keengganan risiko sistemik $\gamma$ ditetapkan ke 0 (Network Markowitz) jelas mengungguli strategi alokasi portofolio lainnya. Untuk mengilustrasikan, jika kita melihat kinerja kumulatif dari metode yang disebutkan di atas, kita dapat melihat bahwa itu lebih dari setengah kerugian sehubungan dengan portofolio yang tertimbang sama, portofolio Glasso Markowitz dan semua portofolio termasuk parameter keengganan risiko $\gamma > 0$. Selain itu, hampir setengah kerugian sehubungan dengan indeks benchmark (CRIX) dan metodologi Markowitz tradisional. Ini menunjukkan bahwa model ini mampu memberikan cakupan yang lebih kuat untuk kerugian dalam kasus periode pasar turun sehubungan dengan semua strategi alokasi aset lain yang dipertimbangkan.
+
+Dalam Tabel \ref{tab:var} kami menghitung Value at Risk (VaR) 4 bulan dengan tingkat kepercayaan 0,05\% untuk indeks benchmark (CRIX), portofolio yang tertimbang sama, portofolio Network Markowitz kami, Glasso Markowitz dan portofolio Markowitz tradisional. Ini dilakukan untuk membandingkan, bersama dengan pengembalian kumulatif, potensi risiko strategi kami sehubungan dengan metode alokasi portofolio alternatif yang dipertimbangkan.
+
+\begin{table}[H]
+\centering
+\caption{Value at Risk}
+\label{tab:var}
+\begin{tabular}{lccccc}
+\toprule
+Periode & CRIX & EW & NW & GM & CM \\
+\midrule
+Jan-2018 & 0.11 & 0.13 & 0.15 & 0.14 & 0.03 \\
+May-2018 & 0.04 & 0.05 & 0.02 & 0.05 & 0.03 \\
+Sep-2018 & 0.11 & 0.11 & 0.10 & 0.12 & 0.02 \\
+Jan-2019 & 0.07 & 0.10 & 0.05 & 0.07 & 0.01 \\
+May-2019 & 0.04 & 0.02 & 0.03 & 0.02 & 0.04 \\
+Sep-2019 & 0.05 & 0.05 & 0.02 & 0.05 & 0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tabel \ref{tab:var} menunjukkan bahwa, kecuali untuk periode hype harga, pendekatan Network Markowitz yang kami usulkan umumnya menghasilkan nilai at risk yang lebih rendah sehubungan dengan indeks benchmark (CRIX), portofolio naif dan Glasso Markowitz. Model yang disebutkan di atas sebaliknya lebih berisiko daripada model Markowitz tradisional, meskipun yang terakhir, secara keseluruhan, menghasilkan pengembalian negatif yang jauh lebih besar. Secara umum, risiko strategi kami tampaknya cukup memuaskan sehubungan dengan strategi alokasi alternatif yang dianalisis.
+
+Untuk lebih mendukung kesimpulan kami, Tabel \ref{tab:sharpe} menyajikan rasio Sharpe di bawah strategi yang berbeda.
+
+\begin{table}[H]
+\centering
+\caption{Rasio Sharpe}
+\label{tab:sharpe}
+\begin{tabular}{lcccccccccc}
+\toprule
+Periode & GM & EW & CM & NW & $\gamma$=0.005 & $\gamma$=0.025 & $\gamma$=0.05 & $\gamma$=0.15 & $\gamma$=0.7 & $\gamma$=1 \\
+\midrule
+Jan-2018 & $-0.05$ & $-0.05$ & $-0.03$ & $-0.13$ & $-0.12$ & $-0.08$ & $-0.06$ & $-0.08$ & $-0.09$ & $-0.10$ \\
+May-2018 & $-0.14$ & $-0.14$ & $-0.19$ & $-0.03$ & $-0.04$ & $-0.08$ & $-0.09$ & $-0.08$ & $-0.07$ & $-0.07$ \\
+Sep-2018 & $-0.10$ & $-0.09$ & $-0.17$ & $-0.04$ & $-0.17$ & $-0.17$ & $-0.20$ & $-0.20$ & $-0.18$ & $-0.17$ \\
+Jan-2019 & 0.10 & 0.09 & 0.11 & 0.09 & 0.06 & 0.08 & 0.11 & 0.12 & 0.12 & 0.12 \\
+May-2019 & $-0.02$ & $-0.02$ & 0.01 & 0.08 & 0.02 & 0.02 & $-0.00$ & $-0.03$ & $-0.04$ & $-0.04$ \\
+Sep-2019 & $-0.06$ & $-0.06$ & $-0.03$ & 0.03 & 0.07 & $-0.11$ & $-0.14$ & $-0.14$ & $-0.14$ & $-0.14$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tabel \ref{tab:sharpe} memberikan bukti lebih lanjut untuk mendukung kesimpulan kami: pendekatan Network Markowitz yang diusulkan menghasilkan Rasio Sharpe yang lebih baik.
+
+Untuk memperkuat ketahanan kesimpulan kami, Tabel \ref{tab:rachev} menyajikan rasio Rachev, dengan tingkat kepercayaan 10\%, di bawah strategi yang berbeda. Rasio Rachev adalah suplemen yang berguna dari rasio Sharpe, ketika data tidak simetris, seperti dalam konteks kami. Ini dihitung sebagai rasio antara keuntungan ekstrem dan kerugian ekstrem.
+
+\begin{table}[H]
+\centering
+\caption{Rasio Rachev}
+\label{tab:rachev}
+\begin{tabular}{lcccccccccc}
+\toprule
+Periode & GM & EW & CM & NW & $\gamma$=0.005 & $\gamma$=0.025 & $\gamma$=0.05 & $\gamma$=0.15 & $\gamma$=0.7 & $\gamma$=1 \\
+\midrule
+Jan-2018 & 0.74 & 0.75 & 0.63 & 0.64 & 0.69 & 0.77 & 0.79 & 0.78 & 0.77 & 0.99 \\
+May-2018 & 0.73 & 0.75 & 0.95 & 0.83 & 0.74 & 0.77 & 0.83 & 0.87 & 0.87 & 0.55 \\
+Sep-2018 & 0.81 & 0.84 & 0.87 & 0.61 & 0.80 & 0.75 & 0.76 & 0.80 & 0.80 & 0.48 \\
+Jan-2019 & 1.16 & 1.11 & 1.47 & 1.24 & 1.34 & 1.36 & 1.39 & 1.40 & 1.40 & 1.26 \\
+May-2019 & 0.80 & 0.80 & 1.05 & 0.97 & 0.93 & 0.84 & 0.75 & 0.72 & 0.72 & 0.98 \\
+Sep-2019 & 0.75 & 0.78 & 1.00 & 1.14 & 0.43 & 0.38 & 0.38 & 0.38 & 0.37 & 0.78 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tabel \ref{tab:rachev} menunjukkan bahwa pendekatan Network Markowitz menghasilkan kinerja terbaik di periode awal dan akhir, dan Markowitz Klasik di semua periode lainnya. Strategi lain umumnya menunjukkan kinerja yang lebih buruk. Ini konsisten dengan temuan kami sebelumnya, dan dengan fakta bahwa rasio Rachev mengambil nilai yang lebih tinggi selama periode yang ditandai dengan pengembalian yang menurun, seperti kuartal yang mendahului Januari 2019.
+
+Secara keseluruhan, kami tidak dapat mengatakan bahwa model yang diusulkan mengungguli pendekatan tradisional (seperti Glasso Markowitz dan Classical Markowitz). Ini terjadi dalam periode tertentu dan menurut parameterisasi keengganan risiko tertentu.
+
+\section{Kesimpulan}
+
+Dalam makalah ini kami telah mengusulkan metodologi yang bertujuan untuk membangun strategi alokasi yang cocok untuk pasar yang sangat volatil, seperti pasar cryptocurrency. Secara khusus, kami telah menerapkan model kami pada satu set 10 deret waktu pengembalian cryptocurrency, yang dipilih dalam hal kapitalisasi pasar. Kami telah menunjukkan bahwa penggunaan model jaringan dapat meningkatkan profil risiko-pengembalian portofolio dan mengurangi kerugian selama periode pasar turun.
+
+Kami telah menunjukkan bagaimana penggunaan ukuran sentralitas, bersama dengan penyetelan keengganan risiko sistemik investor, adalah metodologi yang cocok untuk menghasilkan keuntungan selama periode pasar bullish, karena metode ini dengan cepat beradaptasi dengan kondisi pasar. Kami juga telah menunjukkan bahwa, untuk melindungi investor dari kerugian selama periode pasar bearish, kombinasi Teori Matriks Acak dan Pohon rentang minimal dapat menghasilkan profil risiko-pengembalian yang dapat diterima dan/atau mengurangi kerugian.
+
+Temuan empiris kami menunjukkan bahwa, secara keseluruhan, metode yang diusulkan dapat diterima, bahkan selama periode penurunan. Namun, kami tidak dapat mengklaim bahwa model yang diusulkan ini harus selalu digunakan dalam konsultasi otomatis. Ini harus selalu dibandingkan dengan alternatif yang bersaing, sesuai dengan kondisi pasar yang berbeda dan keengganan risiko yang berbeda.
+
+Kami sangat percaya bahwa model yang diusulkan harus diuji lebih lanjut dalam konteks yang berbeda. Untuk tujuan ini, kami menyediakan di https://www.fintech-ho2020.eu tautan ke data dan perangkat lunak yang digunakan, sehingga metode yang diusulkan dapat sepenuhnya direproduksi. Perangkat lunak ditulis dalam bahasa R, dan memungkinkan metode untuk diperluas ke data dan konteks lain.
+
+Penelitian lebih lanjut harus melibatkan, selain aplikasi ke konteks lain, pertimbangan model alokasi portofolio dasar yang berbeda. Kami telah menggunakan Markowitz karena paling banyak digunakan oleh platform robot advisory.
+
+\section*{Ketersediaan Data}
+
+Dataset yang dianalisis untuk studi ini dapat ditemukan di Coinmarketcap (https://coinmarketcap.com/). Perangkat lunak yang digunakan dalam artikel ini tidak tersedia untuk umum karena berdasarkan sumber milik. Permintaan untuk mengakses dataset harus ditujukan kepada Gloria Polinesi (glopol@hotmail.it).
+
+\section*{Kontribusi Penulis}
+
+Makalah ditulis dalam kolaborasi erat antara para penulis. Namun, bagian 2 dan 4 telah ditulis oleh GP, bagian 1 dan 3 oleh PP, sementara PG telah mengawasi dan mengoordinasikan pekerjaan.
+
+\section*{Pendanaan}
+
+Penelitian ini telah menerima pendanaan dari program penelitian dan inovasi Horizon 2020 Uni Eropa FIN-TECH: Sebuah program pelatihan kepatuhan Pengawasan keuangan dan Teknologi di bawah perjanjian hibah No 825215 (Topik: ICT-35-2018, Jenis tindakan: CSA).
+
+\begin{thebibliography}{99}
+
+\bibitem{fsb2017a} FSB (2017a). \textit{Financial Stability Implications From Fintech: Supervisory and Regulatory Issues That Merit Authorities' Attention}. Basel: FSB.
+
+\bibitem{fsb2017b} FSB (2017b). \textit{Fintech Credit. Financial Stability Board Report} (27 Juni, 2017).
+
+\bibitem{nakamoto2008} Nakamoto, S. (2008). \textit{Bitcoin: A Peer-to-Peer Electronic Cash System}. www.bitcoin.org
+
+\bibitem{brandvold2015} Brandvold, M., Molnár, P., Vagstad, K., dan Valstad, O. C. A. (2015). Price discovery on bitcoin exchanges. \textit{J. Int. Financ. Markets Inst. Money} 36, 18–35.
+
+\bibitem{pagnottoni2018} Pagnottoni, P., dan Dimpfl, T. (2018). Price discovery on bitcoin markets. \textit{Digit. Finance} 1, 1–23.
+
+\bibitem{giudici2019a} Giudici, P., dan Abu-Hashish, I. (2019). What determines bitcoin exchange prices? A network var approach. \textit{Finance Res. Lett.} 28, 309–318.
+
+\bibitem{corbet2018b} Corbet, S., Meegan, A., Larkin, C., Lucey, B., dan Yarovaya, L. (2018b). Exploring the dynamic relationships between cryptocurrencies and other financial assets. \textit{Econ. Lett.} 165, 28–34.
+
+\bibitem{giudici2019b} Giudici, P., dan Pagnottoni, P. (2019a). High frequency price change spillovers in bitcoin markets. \textit{Risks} 7:111.
+
+\bibitem{giudici2019c} Giudici, P., dan Pagnottoni, P. (2019b). Vector error correction models to measure connectedness of bitcoin exchange markets. \textit{Appl. Stochast. Models Bus. Ind.} 36, 95–109.
+
+\bibitem{corbet2018a} Corbet, S., Lucey, B., Peat, M., dan Vigne, S. (2018a). Bitcoin futures-what use are they? \textit{Econ. Lett.} 172, 23–27.
+
+\bibitem{baur2019} Baur, D. G. dan Dimpfl, T. (2019). Price discovery in bitcoin spot or futures?. \textit{J. Fut. Markets.} 39.7, 803–817.
+
+\bibitem{giudici2019d} Giudici, P. dan Polinesi, G. (2019). Crypto price discovery through correlation networks. \textit{Ann. Oper. Res.} 2.
+
+\bibitem{pagnottoni2019} Pagnottoni, P. (2019). Neural network models for bitcoin option pricing. \textit{Front. Artif. Intell.} 2:5.
+
+\bibitem{mantegna1999} Mantegna, R. N. (1999). Hierarchical structure in financial markets. \textit{Eur. Phys. J. B Condens. Matter Complex Syst.} 11, 193–197.
+
+\bibitem{tola2008} Tola, V., Lillo, F., Gallegati, M., dan Mantegna, R. N. (2008). Cluster analysis for portfolio optimization. \textit{J. Econ. Dyn. Control} 32, 235–258.
+
+\bibitem{zhan2015} Zhan, H. C. J., Rea, W., dan Rea, A. (2015). An application of correlation clustering to portfolio diversification. arXiv 1511.07945.
+
+\bibitem{leon2017} León, D., Aragón, A., Sandoval, J., Hernández, G., Arévalo, A., dan Nino, J. (2017). Clustering algorithms for risk-adjusted portfolio construction. \textit{Proc. Comput. Sci.} 108, 1334–1343.
+
+\bibitem{raffinot2017} Raffinot, T. (2017). Hierarchical clustering-based asset allocation. \textit{J. Portfolio Manag.} 44, 89–99.
+
+\bibitem{ren2017} Ren, F., Lu, Y.-N., Li, S.-P., Jiang, X.-F., Zhong, L.-X., dan Qiu, T. (2017). Dynamic portfolio strategy using clustering approach. \textit{PLoS ONE} 12:e0169299.
+
+\bibitem{markowitz1952} Markowitz, H. (1952). Portfolio selection. \textit{J. Finance} 7, 77–91.
+
+\bibitem{beenakker1997} Beenakker, C. W. (1997). Random-matrix theory of quantum transport. \textit{Rev. Mod. Phys.} 69:731.
+
+\bibitem{guhr1998} Guhr, T., Müller-Groeling, A., dan Weidenmüller, H. A. (1998). Random-matrix theories in quantum physics: common concepts. \textit{Phys. Rep.} 299, 189–425.
+
+\bibitem{tulino2004} Tulino, A. M., dan Verdú, S. (2004). Random matrix theory and wireless communications. \textit{Found. Trends Commun. Inform. Theory} 1, 1–182.
+
+\bibitem{potters2005} Potters, M., Bouchaud, J.-P., dan Laloux, L. (2005). Financial applications of random matrix theory: old laces and new pieces. arXiv 0507111.
+
+\bibitem{marchenko1967} Marchenko, V. A., dan Pastur, L. A. (1967). Distribution of eigenvalues for some sets of random matrices. \textit{Matematich. Sbornik} 114, 507–536.
+
+\bibitem{eom2009} Eom, C., Oh, G., Jung, W.-S., Jeong, H., dan Kim, S. (2009). Topological properties of stock networks based on minimal spanning tree and random matrix theory in financial time series. \textit{Phys. A Stat. Mech. Appl.} 388, 900–906.
+
+\bibitem{mantegna1999b} Mantegna, R. N., dan Stanley, H. E. (1999). \textit{Introduction to Econophysics: Correlations and Complexity in Finance}. Cambridge: Cambridge University Press.
+
+\bibitem{bonanno2003} Bonanno, G., Caldarelli, G., Lillo, F., dan Mantegna, R. N. (2003). Topology of correlation-based minimal spanning trees in real and model markets. \textit{Phys. Rev. E} 68:046130.
+
+\bibitem{spelta2012} Spelta, A., dan Araújo, T. (2012). The topology of cross-border exposures: beyond the minimal spanning tree approach. \textit{Phys. A Stat. Mech. Appl.} 391, 5572–5583.
+
+\bibitem{perra2008} Perra, N., dan Fortunato, S. (2008). Spectral centrality measures in complex networks. \textit{Phys. Rev. E} 78:036107.
+
+\bibitem{katz1953} Katz, L. (1953). A new status index derived from sociometric analysis. \textit{Psychometrika} 18, 39–43.
+
+\bibitem{brin1998} Brin, S., dan Page, L. (1998). The anatomy of a large-scale hypertextual web search engine. \textit{Comput. Netw. ISDN Syst.} 30, 107–117.
+
+\bibitem{kleinberg1999} Kleinberg, J. M. (1999). Authoritative sources in a hyperlinked environment. \textit{J. ACM} 46, 604–632.
+
+\bibitem{bonacich2007} Bonacich, P. (2007). Some unique properties of eigenvector centrality. \textit{Soc. Netw.} 29, 555–564.
+
+\bibitem{onnela2003} Onnela, J.-P., Chakraborti, A., Kaski, K., Kertesz, J., dan Kanto, A. (2003). Dynamics of market correlations: taxonomy and portfolio analysis. \textit{Phys. Rev. E} 68:056110.
+
+\bibitem{pozzi2013} Pozzi, F., Di Matteo, T., dan Aste, T. (2013). Spread of risk across financial markets: better to invest in the peripheries. \textit{Sci. Rep.} 3:1665.
+
+\bibitem{peralta2016} Peralta, G., dan Zareei, A. (2016). A network approach to portfolio selection. \textit{J. Empir. Finance} 38, 157–180.
+
+\bibitem{vyrost2018} Výrost, T., Lyócsa, Š., dan Baumöhl, E. (2018). Network-based asset allocation strategies. \textit{N. Am. J. Econ. Finance} 47, 516–536.
+
+\bibitem{plerou2002} Plerou, V., Gopikrishnan, P., Rosenow, B., Amaral, L. A. N., Guhr, T., dan Stanley, H. E. (2002). Random matrix approach to cross correlations in financial data. \textit{Phys. Rev. E} 65:066126.
+
+\bibitem{conlon2007} Conlon, T., Ruskin, H. J., dan Crane, M. (2007). Random matrix theory and fund of funds portfolio optimisation. \textit{Phys. A Stat. Mech. Appl.} 382, 565–576.
+
+\end{thebibliography}
+
+\end{document}

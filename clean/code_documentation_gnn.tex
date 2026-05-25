@@ -1,0 +1,604 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{parskip}
+
+\geometry{margin=1in}
+
+% ── Python Listing Style ──────────────────────────────────────────────────────
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{codeorange}{rgb}{0.8,0.4,0}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codeorange},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    morekeywords={self, True, False, None, nn, F, torch, np, pd}
+}
+\lstset{style=pythonstyle}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\title{\textbf{Dokumentasi Kode} \\ \large Strategi Portofolio Berbasis Graph Neural Networks (GNN) \\
+\small \texttt{strategy\_comparison\_gnn\_only.ipynb}}
+\author{Catatan Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{Pendahuluan}
+%=============================================================================
+Dokumen ini fokus pada implementasi dan evaluasi strategi alokasi portofolio menggunakan 
+\textbf{GNN Graph Diversification}. Berbeda dengan metode klasik, pendekatan ini 
+menggunakan \textit{Graph Convolutional Networks} (GCN) untuk mempelajari dependensi 
+antar aset kripto secara non-linier dan membangun graf korelasi prediktif untuk 
+pemilihan aset melalui \textit{Maximum Independent Set} (MIS).
+
+Varian yang diuji mencakup:
+\begin{enumerate}
+    \item \textbf{GNN Graph Diversification (30 Epoch)}: Pelatihan model durasi pendek.
+    \item \textbf{GNN Graph Diversification (50 Epoch)}: Pelatihan model durasi menengah.
+    \item \textbf{GNN Graph Diversification (100 Epoch)}: Eksperimen konvergensi lebih dalam.
+\end{enumerate}
+
+%=============================================================================
+\section{Sel 1 -- Import Libraries}
+%=============================================================================
+
+\subsection{Deskripsi}
+Mengimpor pustaka utama untuk Deep Learning graf dan ekosistem sains data Python.
+\begin{lstlisting}[caption={Import libraries}]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import seaborn as sns
+import networkx as nx
+from scipy.optimize import minimize
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.linalg import eigh
+from sklearn.covariance import GraphicalLassoCV
+from scipy import stats
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
+from torch_geometric.data import Data
+import warnings
+warnings.filterwarnings('ignore')
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette('husl')
+print('Libraries imported successfully!')
+print(f'PyTorch: {torch.__version__}')
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 2 -- Load \& Prepare Real Crypto Data}
+%=============================================================================
+
+\subsection{Deskripsi}
+Memuat dataset return harian aset kripto dari file Excel. Pembersihan dilakukan untuk memastikan 
+hanya data sinkron yang digunakan. Bagian ini juga mendefinisikan label sub-periode pasar 
+(\textit{Bull, Bear, Recovery}) untuk analisis performa yang lebih mendalam.
+
+\subsection{Kode}
+\begin{lstlisting}[caption={Load dan preparasi data lengkap}]
+EXCEL_FILE = 'crypto_data_real.xlsx'
+df_raw = pd.read_excel(EXCEL_FILE, sheet_name='Returns', index_col=0)
+df_raw.index = pd.to_datetime(df_raw.index)
+df_raw.sort_index(inplace=True)
+df_raw = df_raw.drop(columns=['USDT'], errors='ignore')  # stablecoin, near-zero returns
+mask = (df_raw != 0).all(axis=1)   # keep only rows where all coins are active
+df_returns = df_raw[mask].copy()
+
+# -- Sub-period labels for later analysis -------------------------------------
+# Crypto market phases (well-documented in literature)
+BULL_END  = '2017-12-31'   # Bull run: Nov 2017 - Dec 2017
+BEAR_END  = '2018-12-31'   # Bear market: Jan 2018 - Dec 2018
+# Recovery: Jan 2019 - Oct 2019
+
+periods = {
+    'Bull (Nov-Dec 2017)' : df_returns.loc[df_returns.index <= BULL_END],
+    'Bear (2018)'        : df_returns.loc[(df_returns.index > BULL_END) & (df_returns.index <= BEAR_END)],
+    'Recovery (2019)'    : df_returns.loc[df_returns.index > BEAR_END],
+    'Full Period'        : df_returns,
+}
+
+print('=== DATASET SUMMARY ===')
+print(f'Assets  : {df_returns.columns.tolist()}')
+print(f'Period  : {df_returns.index.min().date()} -> {df_returns.index.max().date()}')
+print(f'Obs     : {len(df_returns)} trading days')
+print()
+for pname, pdf in periods.items():
+    print(f'{pname:<22}: {len(pdf):>4} days  ({pdf.index.min().date()} -> {pdf.index.max().date()})')
+print()
+print(df_returns.describe().round(4))
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 3 -- Helper Functions \& Risk Metrics}
+%=============================================================================
+
+\subsection{Deskripsi}
+Mendefinisikan fungsi-fungsi utilitas untuk pemrosesan matriks korelasi menggunakan \textit{Random Matrix Theory} (RMT), pembangunan \textit{Minimum Spanning Tree} (MST), perhitungan sentralitas, serta berbagai metrik risiko dan uji statistik Diebold-Mariano.
+
+\subsection{Kode}
+\begin{lstlisting}[caption={Helper functions dan metrik risiko}]
+def apply_rmt_filter(returns_data):
+    T, N = returns_data.shape
+    Q = T / N
+    C = np.corrcoef(returns_data.T)
+    eigenvalues, eigenvectors = eigh(C)
+    eigenvalues = eigenvalues[::-1]
+    eigenvectors = eigenvectors[:, ::-1]
+    lambda_plus = 1 + (1/Q) + 2*np.sqrt(1/Q)
+    Lambda_f = np.diag(np.where(eigenvalues > lambda_plus, eigenvalues, 0))
+    return eigenvectors @ Lambda_f @ eigenvectors.T
+
+def build_mst(correlation_matrix):
+    d = np.sqrt(2 - 2*correlation_matrix)
+    np.fill_diagonal(d, 0)
+    return d
+
+def compute_eigenvector_centrality(distance_matrix):
+    adj = 1 / (distance_matrix + 1e-8)
+    np.fill_diagonal(adj, 0)
+    _, vecs = eigh(adj)
+    pev = np.abs(vecs[:, -1])
+    return pev / pev.sum()
+
+def get_assets_graph_diversify(returns_window, corr_threshold=0.4):
+    corr_mat = returns_window.corr()
+    G = nx.Graph()
+    assets = list(returns_window.mean().sort_values(ascending=False).index)
+    G.add_nodes_from(assets)
+    for i, a1 in enumerate(assets):
+        for a2 in assets[i+1:]:
+            if abs(corr_mat.loc[a1, a2]) > corr_threshold:
+                G.add_edge(a1, a2)
+    return list(nx.approximation.maximum_independent_set(G))
+
+def calculate_var(returns, confidence=0.95):
+    return np.percentile(returns, (1-confidence)*100)
+
+def calculate_rachev_ratio(returns, alpha=0.10):
+    tu = np.percentile(returns, (1-alpha)*100)
+    tl = np.percentile(returns, alpha*100)
+    cu = returns[returns >= tu].mean()
+    cl = abs(returns[returns <= tl].mean())
+    return cu / cl if cl > 0 else 0
+
+def calculate_max_drawdown(cumulative_returns):
+    running_max = np.maximum.accumulate(cumulative_returns)
+    return ((cumulative_returns - running_max) / running_max).min()
+
+def calculate_calmar_ratio(returns, cum_returns):
+    ann_ret = np.mean(returns) * 252
+    mdd = abs(calculate_max_drawdown(cum_returns))
+    return ann_ret / mdd if mdd > 0 else 0
+
+def diebold_mariano_test(returns_a, returns_b, h=1):
+    T = len(returns_a)
+    d = returns_a - returns_b
+    d_mean = np.mean(d)
+    def autocov(xi, xm, k):
+        T_ = len(xi)
+        return np.sum((xi[:T_-k]-xm)*(xi[k:]-xm))/T_ if T_ > k else 0
+    var_d = autocov(d, d_mean, 0)
+    for i in range(1, h):
+        var_d += 2*autocov(d, d_mean, i)
+    dm = d_mean/np.sqrt(abs(var_d)/T) if var_d!=0 else 0
+    pv = 2*(1-stats.norm.cdf(abs(dm)))
+    return dm, pv
+
+print('Helper functions defined.')
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 4 -- Graph Neural Network (GCN Architecture)}
+%=============================================================================
+
+\subsection{Deskripsi}
+Arsitektur GCN dua lapis untuk menghasilkan \textit{node embeddings}. Korelasi 
+antar aset diprediksi melalui \textit{cosine similarity} pada ruang laten. Bagian 
+ini juga menyertakan fungsi untuk menyiapkan data graf dan melatih model.
+
+\subsection{Kode}
+\begin{lstlisting}[caption={Arsitektur CorrelationGNN dan pelatihan}]
+class CorrelationGNN(nn.Module):
+    def __init__(self, input_dim=4, hidden_dim=16, output_dim=8):
+        super().__init__()
+        self.conv1 = GCNConv(input_dim, hidden_dim)
+        self.conv2 = GCNConv(hidden_dim, output_dim)
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.conv2(x, edge_index))
+        return x
+    def predict_correlation(self, emb):
+        n = emb.shape[0]
+        C = torch.zeros(n, n)
+        for i in range(n):
+            for j in range(i+1, n):
+                s = F.cosine_similarity(emb[i].unsqueeze(0), emb[j].unsqueeze(0))
+                C[i,j] = C[j,i] = s
+        return C
+
+def create_graph_data(returns_window, corr_threshold=0.3):
+    n = returns_window.shape[1]
+    feats = np.stack([returns_window.mean().values,
+                      returns_window.std().values,
+                      returns_window.skew().values,
+                      returns_window.kurtosis().values], axis=1)
+    x = torch.FloatTensor(feats)
+    corr = returns_window.corr().values
+    edges = [[i,j] for i in range(n) for j in range(i+1,n)
+             if abs(corr[i,j]) > corr_threshold]
+    edges += [[j,i] for i,j in edges]
+    if not edges:
+        edges = [[i,j] for i in range(n) for j in range(n) if i!=j]
+    ei = torch.LongTensor(edges).t().contiguous()
+    return Data(x=x, edge_index=ei, y=torch.FloatTensor(corr))
+
+def train_gnn(model, data, epochs=50, lr=0.01):
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    loss_fn = nn.MSELoss()
+    model.train()
+    for _ in range(epochs):
+        opt.zero_grad()
+        emb = model(data.x, data.edge_index)
+        loss = loss_fn(model.predict_correlation(emb), data.y)
+        loss.backward()
+        opt.step()
+    return model
+
+print('GNN defined.')
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 5 -- Portfolio Strategy Classes}
+%=============================================================================
+
+\subsection{Deskripsi}
+Bagian ini mendefinisikan \textit{blueprint} utama untuk strategi portofolio melalui kelas basis \textit{PortfolioStrategy}. Berbagai strategi diimplementasikan sebagai turunan kelas ini, mulai dari strategi klasik hingga strategi berbasis graf dan GNN.
+
+\subsection{Kode}
+\begin{lstlisting}[caption={Implementasi berbagai strategi portofolio}]
+class PortfolioStrategy:
+    def __init__(self, name):
+        self.name = name
+    def get_weights(self, r): raise NotImplementedError
+
+class EquallyWeighted(PortfolioStrategy):
+    def get_weights(self, r):
+        n = r.shape[1]; return np.ones(n)/n
+
+class ClassicalMarkowitz(PortfolioStrategy):
+    def get_weights(self, r):
+        n=r.shape[1]; mu=r.mean().values; S=r.cov().values
+        f=lambda w: w@S@w
+        c=[{'type':'eq','fun':lambda w:np.sum(w)-1},
+           {'type':'ineq','fun':lambda w:w@mu-mu.mean()}]
+        res=minimize(f,np.ones(n)/n,method='SLSQP',bounds=[(0,1)]*n,constraints=c)
+        return res.x if res.success else np.ones(n)/n
+
+class GlassoMarkowitz(PortfolioStrategy):
+    def __init__(self,name='Glasso Markowitz',alpha=0.01):
+        super().__init__(name); self.alpha=alpha
+    def get_weights(self, r):
+        n=r.shape[1]; mu=r.mean().values
+        try:
+            g=GraphicalLassoCV(alphas=[self.alpha],cv=3)
+            g.fit(r.values); S=g.covariance_
+        except: S=r.cov().values
+        f=lambda w: w@S@w
+        c=[{'type':'eq','fun':lambda w:np.sum(w)-1},
+           {'type':'ineq','fun':lambda w:w@mu-mu.mean()}]
+        res=minimize(f,np.ones(n)/n,method='SLSQP',bounds=[(0,1)]*n,constraints=c)
+        return res.x if res.success else np.ones(n)/n
+
+class NetworkMarkowitz(PortfolioStrategy):
+    def __init__(self,name='Network Markowitz',gamma=0):
+        super().__init__(name); self.gamma=gamma
+    def get_weights(self, r):
+        n=r.shape[1]; mu=r.mean().values; sig=r.std().values
+        Cf=apply_rmt_filter(r); dm=build_mst(Cf); cent=compute_eigenvector_centrality(dm)
+        Sf=np.outer(sig,sig)*Cf
+        f=lambda w: w@Sf@w+self.gamma*np.sum(cent*w)
+        c=[{'type':'eq','fun':lambda w:np.sum(w)-1},
+           {'type':'ineq','fun':lambda w:w@mu-mu.mean()}]
+        res=minimize(f,np.ones(n)/n,method='SLSQP',bounds=[(0,1)]*n,constraints=c)
+        return res.x if res.success else np.ones(n)/n
+
+class GraphDiversification(PortfolioStrategy):
+    def __init__(self,name='Graph Diversification',corr_threshold=0.4):
+        super().__init__(name); self.corr_threshold=corr_threshold
+    def get_weights(self, r):
+        n=r.shape[1]; assets=r.columns.tolist()
+        sel=get_assets_graph_diversify(r,self.corr_threshold)
+        w=np.zeros(n)
+        if sel:
+            for a in sel: w[assets.index(a)]=1.0/len(sel)
+        else: w=np.ones(n)/n
+        return w
+
+class GNNGraphDiversification(PortfolioStrategy):
+    def __init__(self,name='GNN Graph Diversification',base_threshold=0.4,train_epochs=30):
+        super().__init__(name)
+        self.base_threshold=base_threshold; self.train_epochs=train_epochs
+        self.gnn_model=CorrelationGNN(input_dim=4,hidden_dim=16,output_dim=8)
+    def get_weights(self, r):
+        n=r.shape[1]; assets=r.columns.tolist()
+        gd=create_graph_data(r,corr_threshold=0.3)
+        self.gnn_model=train_gnn(self.gnn_model,gd,epochs=self.train_epochs)
+        self.gnn_model.eval()
+        with torch.no_grad():
+            emb=self.gnn_model(gd.x,gd.edge_index)
+            pc=self.gnn_model.predict_correlation(emb)
+        pn=pc.numpy(); up=pn[np.triu_indices(n,k=1)]
+        thr=np.clip(np.mean(np.abs(up))+0.5*np.std(np.abs(up)),0.3,0.7)
+        G=nx.Graph()
+        asorted=list(r.mean().sort_values(ascending=False).index)
+        G.add_nodes_from(asorted)
+        for i,a1 in enumerate(asorted):
+            for a2 in asorted[i+1:]:
+                i1,i2=assets.index(a1),assets.index(a2)
+                if abs(pn[i1,i2])>thr: G.add_edge(a1,a2)
+        sel=list(nx.approximation.maximum_independent_set(G))
+        w=np.zeros(n)
+        if sel:
+            for a in sel: w[assets.index(a)]=1.0/len(sel)
+        else: w=np.ones(n)/n
+        return w
+
+print('All strategy classes defined.')
+\end{lstlisting}
+
+%=============================================================================
+\section{Sel 6 -- Backtesting \& Performance Metrics}
+%=============================================================================
+
+\subsection{Deskripsi}
+Sistem backtesting melakukan iterasi \textit{rolling window} dengan memperhitungkan biaya transaksi. Hasil simulasi kemudian diproses melalui fungsi metrik untuk mendapatkan data statistik performa portofolio.
+
+\subsection{Kode}
+\begin{lstlisting}[caption={Framework backtesting dan metrik}]
+def backtest_strategy(strategy, df_ret, window_size=120, rebalance_freq=7, transaction_cost=0.001):
+    port_returns=[]; dates=[]
+    for i in range(window_size, len(df_ret), rebalance_freq):
+        train=df_ret.iloc[i-window_size:i]
+        w=strategy.get_weights(train)
+        test_end=min(i+rebalance_freq,len(df_ret))
+        test=df_ret.iloc[i:test_end]
+        for j in range(len(test)):
+            dr=np.dot(w,test.iloc[j].values)
+            if j==0 and port_returns: dr-=transaction_cost
+            port_returns.append(dr); dates.append(test.index[j])
+    res=pd.DataFrame({'date':dates,'return':port_returns})
+    res['cumulative_return']=(1+res['return']).cumprod()
+    return {'strategy':strategy.name,'returns':np.array(port_returns),
+            'cumulative_returns':res['cumulative_return'].values,'dates':dates,'results_df':res}
+
+def calculate_metrics(result):
+    r=result['returns']; cr=result['cumulative_returns']
+    ann_r=np.mean(r)*252; ann_v=np.std(r)*np.sqrt(252)
+    sharpe=ann_r/ann_v if ann_v>0 else 0
+    return {
+        'Strategy'           :result['strategy'],
+        'Total Return (%)'   :round((cr[-1]-1)*100,2),
+        'Annual Return (%)'  :round(ann_r*100,2),
+        'Annual Vol (%)'     :round(ann_v*100,2),
+        'Sharpe Ratio'       :round(sharpe,4),
+        'VaR 95% (%)'        :round(calculate_var(r,0.95)*100,4),
+        'Rachev Ratio'       :round(calculate_rachev_ratio(r,0.10),4),
+        'Max Drawdown (%)'   :round(calculate_max_drawdown(cr)*100,2),
+        'Calmar Ratio'       :round(calculate_calmar_ratio(r,cr),4),
+    }
+
+def highlight_best(col):
+    is_min = col.name in ['Annual Vol (%)', 'VaR 95% (%)', 'Max Drawdown (%)']
+    best = col.min() if is_min else col.max()
+    return ['background-color: #d4edda; font-weight: bold' if v==best else '' for v in col]
+
+strategies = [
+    EquallyWeighted('Equally Weighted'),
+    ClassicalMarkowitz('Classical Markowitz'),
+    GlassoMarkowitz('Glasso Markowitz', alpha=0.01),
+    NetworkMarkowitz('Network Markowitz (gamma=0)',   gamma=0),
+    NetworkMarkowitz('Network Markowitz (gamma=1.0)', gamma=1.0),
+    GraphDiversification('Graph Divers. (theta=0.4)', corr_threshold=0.4),
+    GraphDiversification('Graph Divers. (theta=0.5)', corr_threshold=0.5),
+    GNNGraphDiversification('GNN Graph Divers. (30 ep)', train_epochs=30),
+    GNNGraphDiversification('GNN Graph Divers. (50 ep)', train_epochs=50),
+]
+
+results = {}
+for s in strategies:
+    results[s.name] = backtest_strategy(s, df_returns, window_size=120, rebalance_freq=7)
+
+metrics_df = pd.DataFrame([calculate_metrics(r) for r in results.values()]).set_index('Strategy')
+print('PERFORMANCE METRICS (full period)')
+print('='*100)
+print(metrics_df.to_string())
+print('='*100)
+metrics_df.style.apply(highlight_best)
+\end{lstlisting}
+
+Selain tabel metrik, visualisasi kumulatif return dan drawdown digunakan untuk membandingkan stabilitas portofolio serta ketahanannya terhadap penurunan pasar harian. Grafik di bawah mencakup shading untuk membedakan fase Bull, Bear, dan Recovery.
+
+\begin{lstlisting}[caption={Visualisasi Cumulative Returns dan Drawdown}]
+# Visualisasi 2-Panel (Cumulative Return & Drawdown)
+fig, axes = plt.subplots(2, 1, figsize=(12, 10), sharex=True, 
+                         gridspec_kw={'height_ratios': [2, 1]})
+
+# Plot 1: Cumulative Return
+ax1 = axes[0]
+gnn_colors = sns.color_palette('rocket', 2)
+other_colors = sns.color_palette('muted', 7)
+gi = oi = 0
+for name, res in results.items():
+    dates = pd.to_datetime(res['dates'])
+    if 'GNN' in name:
+        ax1.plot(dates, res['cumulative_returns'], label=name,
+                 color=gnn_colors[gi], linewidth=2.8, zorder=5)
+        gi += 1
+    else:
+        ax1.plot(dates, res['cumulative_returns'], label=name,
+                 color=other_colors[oi], linewidth=1.3, alpha=0.75)
+        oi += 1
+
+# Shading Market Phase
+ax1.axvspan(pd.Timestamp('2017-11-10'), pd.Timestamp('2017-12-31'), alpha=0.08, color='green', label='Bull Phase')
+ax1.axvspan(pd.Timestamp('2018-01-01'), pd.Timestamp('2018-12-31'), alpha=0.08, color='red', label='Bear Phase')
+ax1.axvspan(pd.Timestamp('2019-01-01'), pd.Timestamp('2019-10-17'), alpha=0.08, color='blue', label='Recovery Phase')
+ax1.set_title('Cumulative Returns by Strategy — Real Crypto Portfolio', fontsize=13)
+ax1.set_ylabel('Cumulative Return'); ax1.legend(bbox_to_anchor=(1.01,1), loc='upper left', fontsize=8)
+
+# Plot 2: Drawdown Chart
+ax2 = axes[1]
+gi = oi = 0
+for name, res in results.items():
+    cr = res['cumulative_returns']
+    dd = (cr - np.maximum.accumulate(cr)) / np.maximum.accumulate(cr) * 100
+    dates = pd.to_datetime(res['dates'])
+    if 'GNN' in name:
+        ax2.plot(dates, dd, label=name, color=gnn_colors[gi], linewidth=2.5, zorder=5)
+        gi += 1
+    else:
+        ax2.plot(dates, dd, label=name, color=other_colors[oi], linewidth=1.1, alpha=0.7)
+        oi += 1
+ax2.set_title('Drawdown (%) by Strategy', fontsize=13)
+ax2.set_xlabel('Date'); ax2.set_ylabel('Drawdown (%)')
+plt.tight_layout(); plt.show()
+\end{lstlisting}
+
+\subsection{Validasi Statistik (Diebold-Mariano Test)}
+Untuk memastikan perbedaan performa antar strategi signifikan secara statistik, dilakukan uji Diebold-Mariano secara berpasangan (\textit{pairwise}).
+
+\begin{lstlisting}[caption={Komputasi Matriks DM Test}]
+strategy_names = list(results.keys())
+n_strat = len(strategy_names)
+
+dm_stat_mat = pd.DataFrame(index=strategy_names, columns=strategy_names, dtype=float)
+dm_pval_mat = pd.DataFrame(index=strategy_names, columns=strategy_names, dtype=float)
+
+for i, s1 in enumerate(strategy_names):
+    for j, s2 in enumerate(strategy_names):
+        if i == j:
+            dm_stat_mat.loc[s1,s2] = 0.0
+            dm_pval_mat.loc[s1,s2] = 1.0
+        else:
+            dm, pv = diebold_mariano_test(results[s1]['returns'], results[s2]['returns'])
+            dm_stat_mat.loc[s1,s2] = round(dm,3)
+            dm_pval_mat.loc[s1,s2] = round(pv,4)
+
+sig_matrix = dm_pval_mat < 0.05   # True where significant
+print('DM Test P-Value Matrix (p < 0.05 = significant)')
+print(dm_pval_mat.to_string())
+print()
+print('DM Test Statistic Matrix (positive = row outperforms column)')
+print(dm_stat_mat.to_string())
+
+# Visualisasi Heatmap DM Test
+short_names = {
+    'Equally Weighted'              : 'EW',
+    'Classical Markowitz'           : 'CMV',
+    'Glasso Markowitz'              : 'Glasso',
+    'Network Markowitz (gamma=0)'   : 'Net-MV(0)',
+    'Network Markowitz (gamma=1.0)' : 'Net-MV(1)',
+    'Graph Divers. (theta=0.4)'     : 'GD(0.4)',
+    'Graph Divers. (theta=0.5)'     : 'GD(0.5)',
+    'GNN Graph Divers. (30 ep)'     : 'GNN-30',
+    'GNN Graph Divers. (50 ep)'     : 'GNN-50',
+}
+dm_stat_r = dm_stat_mat.rename(index=short_names, columns=short_names).astype(float)
+pval_r    = dm_pval_mat.rename(index=short_names, columns=short_names).astype(float)
+
+fig, ax = plt.subplots(figsize=(11, 8))
+mask_diag = np.eye(len(dm_stat_r), dtype=bool)
+sns.heatmap(dm_stat_r, annot=True, fmt='.2f', center=0, cmap='RdYlGn',
+            linewidths=0.5, ax=ax, mask=mask_diag,
+            cbar_kws={'label': 'DM Statistic (positive = row outperforms col)'})
+
+for i in range(len(dm_stat_r)):
+    for j in range(len(dm_stat_r.columns)):
+        if i != j and pval_r.iloc[i,j] < 0.05:
+            ax.text(j+0.85, i+0.15, '*', color='black', fontsize=14, fontweight='bold')
+
+ax.set_title('Diebold-Mariano Test Statistic Matrix\n(* = significant at p<0.05, green = row outperforms)', fontsize=12)
+ax.set_xlabel('Benchmark Strategy')
+ax.set_ylabel('Test Strategy')
+plt.tight_layout()
+plt.savefig('dm_test_heatmap.png', dpi=150, bbox_inches='tight'); plt.show()
+\subsection{Analisis Performa per Sub-Periode}
+Untuk mengevaluasi ketahanan strategi terhadap berbagai kondisi pasar, dilakukan analisis terpisah untuk masing-masing fase (Bull, Bear, dan Recovery). Hal ini penting untuk membuktikan kontribusi GNN dalam meminimalkan risiko pada kondisi ekstrem.
+
+\begin{lstlisting}[caption={Backtesting per Fase Pasar}]
+period_defs = [
+    ('Bear (2018)',     '2018-01-01', '2018-12-31'),
+    ('Recovery (2019)', '2019-01-01', '2019-10-17'),
+]
+
+period_metrics = {}
+for p_name, p_start, p_end in period_defs:
+    sub_df = df_returns.loc[p_start:p_end]
+    sub_results = {}
+    for s in strategies:
+        sub_results[s.name] = backtest_strategy(s, sub_df, window_size=60, rebalance_freq=7)
+    period_metrics[p_name] = pd.DataFrame(
+        [calculate_metrics(r) for r in sub_results.values()]
+    ).set_index('Strategy')
+
+# Komparasi Sharpe Ratio antar fase
+sharpe_comparison = pd.DataFrame({p: pm['Sharpe Ratio'] for p, pm in period_metrics.items()})
+sharpe_comparison['Full Period'] = metrics_df['Sharpe Ratio']
+print('SHARPE RATIO BY MARKET PHASE')
+print(sharpe_comparison.round(4).to_string())
+
+# Visualisasi Bar Chart (Sharpe Comparison)
+sharpe_comparison.plot(kind='bar', figsize=(11, 5), color=['#f44336','#4CAF50','#2196F3'])
+plt.title('Sharpe Ratio Comparison across Market Phases')
+plt.axhline(0, color='black', linewidth=0.8); plt.show()
+\end{lstlisting}
+
+
+
+%=============================================================================
+\section{Kesimpulan Arsitektur GNN}
+%=============================================================================
+
+\begin{itemize}
+    \item \textbf{Input Dimensionality}: 4 fitur node (Mean, Std, Skew, Kurt).
+    \item \textbf{Output Dimensionality}: 8-dim latent space (Embedding).
+    \item \textbf{Adaptabilitas}: Threshold graf dihitung ulang setiap rebalancing minggu melalui model yang dilatih online.
+    \item \textbf{Optimasi}: Adam Optimizer dengan MSE Loss untuk meminimalkan selisih korelasi laten dan empiris.
+\end{itemize}
+
+\end{document}
+
+

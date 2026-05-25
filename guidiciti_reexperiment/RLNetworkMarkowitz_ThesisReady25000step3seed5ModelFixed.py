@@ -124,7 +124,7 @@ def _build_mst_centrality(N, corr_f):
     return mst, cent_vec
 
 
-def get_centrality_weights(returns_window, gamma=1.0):
+def get_centrality_weights(returns_window, gamma=0.0):
     """Full recompute (dipakai untuk test set yang tidak ada di cache)."""
     T, N = returns_window.shape
     mu     = returns_window.mean().values
@@ -617,7 +617,7 @@ if not found:
 # -------------------- New Cell --------------------
 class AblationPortfolioEnv(gym.Env):
     def __init__(self, returns_data, obs_cache, opt_cache,
-                 config, window_size=30, gamma_center=1.0, data_start_offset=0):
+                 config, window_size=30, gamma_center=0.0, data_start_offset=0):
         super().__init__()
         self.data              = returns_data
         self.obs_cache         = obs_cache
@@ -669,7 +669,8 @@ class AblationPortfolioEnv(gym.Env):
 
     def step(self, action):
         gamma = float(np.clip(action[0], -5.0, 5.0)) + self.gamma_center
-        cov_f, cent_vec, mu = self.opt_cache[self.current_step]
+        global_idx = self.data_start_offset + self.current_step
+        cov_f, cent_vec, mu = self.opt_cache[global_idx]
         w        = fast_centrality_weights(cov_f, cent_vec, mu, gamma)
         port_ret = np.dot(w, self.data.iloc[self.current_step].values)
 
@@ -741,7 +742,7 @@ print('Learning curves akan disimpan di learning_curves[(exp_id, seed)]')
 
 # -------------------- New Cell --------------------
 class AblationStrategy:
-    def __init__(self, name, model_path, config, gamma_center=1.0, global_cache=None):
+    def __init__(self, name, model_path, config, gamma_center=0.0, global_cache=None):
         self.name         = name
         self.config       = config
         self.gamma_center = gamma_center
@@ -1660,15 +1661,21 @@ for rank, (n, v) in enumerate(sorted_imp, 1):
 # ================================================================
 mean_obs = obs_array.mean(axis=0)
 N_POINTS = 60
+n_features = len(FEATURE_NAMES)
+ncols = 5
+nrows = (n_features + ncols - 1) // ncols
 
-fig, axes = plt.subplots(1, 5, figsize=(22, 4))
+fig, axes = plt.subplots(nrows, ncols, figsize=(22, 4 * nrows))
 fig.suptitle(
     'Partial Dependence Plot: Gamma Output vs Feature\n'
     '(Fitur lain dikunci pada nilai rata-rata)',
     fontsize=12, fontweight='bold'
 )
 
-for fi, (fname, ax) in enumerate(zip(FEATURE_NAMES, axes)):
+axes_flat = axes.flatten()
+
+for fi, fname in enumerate(FEATURE_NAMES):
+    ax = axes_flat[fi]
     f_min   = obs_array[:, fi].min()
     f_max   = obs_array[:, fi].max()
     f_range = np.linspace(f_min, f_max, N_POINTS)
@@ -1694,6 +1701,10 @@ for fi, (fname, ax) in enumerate(zip(FEATURE_NAMES, axes)):
         ax.set_ylabel('Gamma Output', fontsize=9)
     ax.set_title(fname, fontsize=9, fontweight='bold')
     ax.legend(fontsize=6)
+
+# Sembunyikan subplot yang kosong
+for ax in axes_flat[n_features:]:
+    ax.set_visible(False)
 
 plt.tight_layout()
 plt.savefig('ablation_results_thesis/xai_pdp.png', dpi=150, bbox_inches='tight')

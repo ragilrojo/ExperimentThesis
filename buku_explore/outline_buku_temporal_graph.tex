@@ -1,0 +1,954 @@
+\documentclass[12pt,a4paper]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[indonesian,english]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\title{\textbf{Temporal Graph Analytics}\\
+\large Teori, Algoritma, dan Aplikasi}
+\author{[Nama Penulis]}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\chapter*{Prakata}
+\addcontentsline{toc}{chapter}{Prakata}
+
+\chapter*{Pengantar}
+\addcontentsline{toc}{chapter}{Pengantar}
+
+\part{Fondasi Temporal Graph}
+
+\chapter{Pengenalan Graph Analytics}
+Graph Analytics atau analisis graf adalah bidang yang mempelajari struktur dan hubungan dalam data yang direpresentasikan sebagai graf. Sebelum melangkah lebih jauh ke dalam \textit{Temporal Graph}, penting untuk memahami fondasi dari analisis graf itu sendiri. Bab ini akan membahas konsep dasar, metrik tradisional, serta keterbatasan pendekatan statis yang memotivasi lahirnya analisis temporal.
+
+\section{Konsep Dasar Graph}
+Secara matematis, sebuah graf $G$ didefinisikan sebagai pasangan himpunan $G = (V, E)$, di mana $V$ adalah himpunan simpul (\textit{nodes} atau \textit{vertices}) dan $E$ adalah himpunan sisi (\textit{edges} atau \textit{links}) yang menghubungkan pasangan simpul.
+
+\subsection{Definisi dan Terminologi}
+Simpul ($V$) merepresentasikan entitas, seperti orang dalam jejaring sosial, persimpangan jalan dalam peta, atau protein dalam jaringan biologi. Sisi ($E$) merepresentasikan hubungan antar entitas tersebut, seperti pertemanan, jalan fisik, atau interaksi kimia.
+
+Jika $u, v \in V$, maka sebuah sisi dapat ditulis sebagai pasangan $(u, v)$. Jumlah simpul sering dinotasikan sebagai $|V|$ atau $n$, sedangkan jumlah sisi dinotasikan sebagai $|E|$ atau $m$.
+
+\subsection{Jenis-jenis Graph}
+Berdasarkan karakteristik sisinya, graf dapat dibedakan menjadi:
+\begin{itemize}
+    \item \textbf{Graf Tak Berarah (\textit{Undirected Graph})}: Sisi tidak memiliki arah. Hubungan $(u, v)$ identik dengan $(v, u)$. Contoh: hubungan pertemanan di Facebook.
+    \item \textbf{Graf Berarah (\textit{Directed Graph/Digraph})}: Sisi memiliki arah dari simpul asal ke simpul tujuan. Hubungan $(u, v)$ berbeda dengan $(v, u)$. Contoh: hubungan \textit{follow} di Twitter atau tautan halaman web.
+    \item \textbf{Graf Berbobot (\textit{Weighted Graph})}: Setiap sisi memiliki nilai numerik atau bobot yang merepresentasikan kekuatan, jarak, atau biaya hubungan.
+\end{itemize}
+
+\subsection{Representasi Graph}
+Dalam komputasi, graf umumnya direpresentasikan dengan dua cara utama:
+\begin{enumerate}
+    \item \textbf{Adjacency Matrix}: Matriks ukuran $n \times n$ di mana elemen $A_{ij}$ bernilai 1 (atau bobot $w$) jika ada sisi dari $i$ ke $j$, dan 0 jika tidak. Cocok untuk graf padat (\textit{dense}).
+    \item \textbf{Adjacency List}: Array sepanjang $n$ di mana setiap elemen menyimpan daftar tetangga dari simpul tersebut. Jauh lebih efisien dalam penggunaan memori untuk graf jarang (\textit{sparse}), yang merupakan karakteristik umum jejaring dunia nyata.
+\end{enumerate}
+
+\section{Graph Analytics Tradisional}
+Analisis graf tradisional berfokus pada properti struktural dari graf statis, di mana waktu tidak dianggap sebagai variabel eksplisit atau data telah di-\textit{aggregate} menjadi satu struktur tetap.
+
+\subsection{Metrics dan Properties}
+Beberapa metrik fundamental dalam analisis graf meliputi:
+\begin{itemize}
+    \item \textbf{Degree Centrality}: Jumlah koneksi yang dimiliki sebuah simpul. Pada graf berarah, dibedakan menjadi \textit{in-degree} dan \textit{out-degree}.
+    \item \textbf{Shortest Path}: Jalur dengan jumlah sisi (atau total bobot) paling sedikit antara dua simpul.
+    \item \textbf{Clustering Coefficient}: Mengukur seberapa besar kecenderungan simpul-simpul untuk membentuk klaster atau grup yang erat (segitiga).
+    \item \textbf{Diameter}: Jarak terpendek maksimum antar pasangan simpul dalam graf.
+\end{itemize}
+
+\subsection{Algoritma Klasik}
+Berbagai algoritma telah dikembangkan untuk mengekstraksi wawasan dari struktur graf:
+\begin{itemize}
+    \item \textbf{Pencarian Jalur}: Algoritma Dijkstra dan A* untuk menemukan rute terpendek, serta BFS/DFS untuk penjelajahan graf.
+    \item \textbf{Community Detection}: Algoritma seperti Louvain atau Girvan-Newman untuk menemukan kelompok simpul yang saling terhubung erat.
+    \item \textbf{Centrality Algorithms}: PageRank dan Betweenness Centrality untuk mengidentifikasi simpul paling penting atau berpengaruh dalam jaringan.
+\end{itemize}
+
+\subsection{Aplikasi Graph Analytics}
+Aplikasi graf statis sangat luas, mulai dari rekomendasi produk (\textit{collaborative filtering}), analisis risiko perbankan, hingga pemetaan rute logistik. Namun, pendekatan ini memiliki keterbatasan mendasar ketika diterapkan pada sistem yang dinamis.
+
+\section{Keterbatasan Graph Statis}
+Banyak sistem di dunia nyata tidak statis; mereka berevolusi terus-menerus. Memperlakukan sistem dinamis sebagai graf statis dapat menghilangkan informasi krusial.
+
+\subsection{Dinamika Dunia Nyata}
+Hampir semua jaringan kompleks berubah seiring waktu. Pertemanan baru terbentuk, transaksi terjadi pada detik tertentu, virus menyebar melalui kontak fisik yang memiliki durasi. Dalam representasi statis, kita sering melakukan \textit{time aggregation}, yaitu menumpuk semua interaksi yang pernah terjadi menjadi satu graf tunggal.
+
+\subsection{Kebutuhan Dimensi Temporal}
+Agregasi statis dapat menyebabkan kesalahan interpretasi, terutama terkait kausalitas.
+\begin{itemize}
+    \item \textbf{Masalah Kausalitas}: Jika A menghubungi B pada hari Senin, dan B menghubungi C pada hari Selasa, informasi dapat mengalir dari A ke C. Namun, jika urutannya dibalik, aliran informasi A ke C mustahil terjadi melalui B. Graf statis yang hanya mencatat "ada hubungan A-B dan B-C" gagal menangkap perbedaan vital ini.
+    \item \textbf{Struktur yang Hilang}: Pola berulang (\textit{temporal motifs}) dan frekuensi interaksi (misalnya, A menghubungi B setiap pagi) hilang dalam representasi statis.
+\end{itemize}
+
+Keterbatasan inilah yang melahirkan kebutuhan akan **Temporal Graph Analytics**, yang tidak hanya memodelkan \textit{siapa} berhubungan dengan \textit{siapa}, tetapi juga \textit{kapan}, \textit{berapa lama}, dan \textit{seberapa sering} hubungan itu terjadi.
+
+\chapter{Temporal Graph: Konsep dan Definisi}
+Temporal Graph, atau sering disebut sebagai \textit{Time-Varying Graph} atau \textit{Dynamic Graph}, memperluas definisi graf tradisional dengan memasukkan dimensi waktu secara eksplisit. Bab ini akan menguraikan definisi formal, taksonomi, dan cara merepresentasikan graf temporal secara komputasi.
+
+\section{Definisi Formal Temporal Graph}
+Berbeda dengan graf statis yang menggambarkan "siapa terhubung dengan siapa", temporal graph menggambarkan "siapa terhubung dengan siapa \textbf{dan kapan}".
+
+\subsection{Temporal Graph Model}
+Secara umum, Temporal Graph $\mathcal{G}$ dapat didefinisikan sebagai himpunan iteraksi berwaktu. Sebuah interaksi atau \textit{event} tidak hanya menghubungkan dua simpul $u$ dan $v$, tetapi juga memiliki penanda waktu (\textit{timestamp}) $t$.
+
+\subsection{Notasi Matematis}
+Terdapat beberapa cara untuk menotasikan temporal graph, namun definisi yang paling fundamental adalah sebagai \textit{sequence of edges}:
+$$ \mathcal{G} = (V, \mathcal{E}_{T}) $$
+Di mana $\mathcal{E}_{T}$ adalah himpunan \textit{temporal edges}. Sebuah temporal edge adalah \textit{tuple} $(u, v, t)$ atau $(u, v, t_s, t_e)$ jika interaksi memiliki durasi dari waktu mulai $t_s$ hingga selesai $t_e$.
+
+\subsection{Properties Temporal}
+Properti unik dari temporal graph meliputi:
+\begin{itemize}
+    \item \textbf{Time Window ($T$)}: Rentang waktu total observasi $[t_{min}, t_{max}]$.
+    \item \textbf{Resolution ($\delta$)}: Unit terkecil waktu yang membedakan dua kejadian.
+    \item \textbf{Aktif/Non-aktif}: Sisi $(u,v)$ hanya dianggap "ada" atau aktif pada waktu $t$ tertentu, tidak selamanya.
+\end{itemize}
+
+\section{Jenis-jenis Temporal Graph}
+Berdasarkan bagaimana waktu diperlakukan, temporal graph dibagi menjadi dua kategori besar.
+
+\subsection{Discrete-Time Temporal Graph}
+Pada model ini, waktu dibagi menjadi langkah-langkah diskrit $t_1, t_2, \dots, t_k$. Graf hanya berubah pada titik-titik waktu ini. Ini sering disebut sebagai model \textit{Snapshot}.
+
+\subsection{Continuous-Time Temporal Graph}
+Pada model ini, $t \in \mathbb{R}^{+}$. Interaksi dapat terjadi pada sembarang titik waktu real. Ini lebih akurat untuk memodelkan data log, telekomunikasi, atau transaksi finansial yang terjadi secara asinkron.
+
+\subsection{Snapshot-based Temporal Graph}
+Ini adalah pendekatan diskrit yang paling umum. $\mathcal{G}$ dipandang sebagai urutan graf statis $\mathcal{G} = \{G_1, G_2, \dots, G_k\}$ di mana $G_i = (V, E_i)$ merepresentasikan keadaan jaringan pada \textit{time slot} ke-$i$. Contoh: Graf pertemanan Facebook yang diambil setiap akhir bulan.
+
+\subsection{Event-based Temporal Graph}
+Sering disebut sebagai \textit{Interaction Networks} atau \textit{Link Streams}. Di sini, fokusnya bukan pada status global jaringan pada satu waktu, tetapi pada aliran kejadian individual. Contoh: Stream email masuk atau log server.
+
+\section{Representasi Temporal Graph}
+Pemilihan struktur data sangat krusial untuk performa algoritma temporal.
+
+\subsection{Adjacency List dengan Timestamp}
+Modifikasi dari Adjacency List standar. Untuk setiap simpul $u$, kita menyimpan daftar tetangga bukan hanya sebagai daftar simpul tujuan, tetapi sebagai pasangan $[(v_1, t_1), (v_2, t_2), \dots]$. Ini memungkinkan query "kapan $u$ berinteraksi dengan $v$?" dijawab dengan cepat.
+
+\subsection{Edge Stream Representation}
+Data disimpan sebagai daftar urut waktu (\textit{chronological list}) dari semua interaksi:
+$$ (u_1, v_1, t_1), (u_2, v_2, t_2), \dots $$
+Di mana $t_1 \le t_2 \le \dots$. Format ini sangat cocok untuk pemrosesan \textit{streaming} dan algoritma yang hanya perlu satu kali jalan (\textit{single-pass}).
+
+\subsection{Snapshot Sequences}
+Disimpan sebagai kumpulan matriks atau list terpisah untuk setiap interval waktu. Struktur ini memudahkan penggunaan algoritma graf statis pada setiap snapshot (misalnya, menghitung diameter rata-rata per hari).
+
+\subsection{Temporal Edge List}
+Mirip dengan edge stream, tetapi seringkali diindeks berdasarkan ID simpul dan waktu untuk memungkinkan \textit{random access} yang lebih cepat, sering digunakan dalam basis data graf temporal.
+
+\chapter{Model Temporal Graph}
+Konsep keterhubungan dalam graf temporal jauh lebih kompleks daripada graf statis karena adanya batasan kausalitas. Bab ini membahas model-model dasar yang digunakan untuk menganalisis pergerakan informasi atau penyebaran virus melalui jaringan yang berubah waktu.
+
+\section{Contact Sequences}
+Model paling dasar dari interaksi temporal adalah \textit{Contact Sequence}. Jika kita menganggap simpul sebagai agen, maka \textit{contact sequence} adalah daftar urut dari pertemuan antar agen tersebut.
+Misalkan $C = (u, v, t)$ menandakan kontak antara $u$ dan $v$ pada waktu $t$. Sebuah \textit{sequence} adalah himpunan terurut $\mathcal{C} = \{ (u_1, v_1, t_1), (u_2, v_2, t_2), \dots \}$ dengan $t_1 \le t_2 \le \dots$.
+
+Model ini sering digunakan dalam epidemiologi untuk mensimulasikan penyebaran penyakit menular, di mana urutan kontak menentukan siapa yang bisa menularkan ke siapa.
+
+\section{Time-Respecting Paths}
+Konsep terpenting dalam analisis temporal adalah \textit{Time-Respecting Path} (Jalur yang Menghormati Waktu).
+Dalam graf statis, jalur adalah sekumpulan sisi yang menghubungkan simpul. Dalam graf temporal, jalur hanya valid jika urutan waktu sisi-sisinya tidak melanggar kausalitas.
+
+\textbf{Definisi}: Sebuah urutan kontak $P = \langle (v_0, v_1, t_1), (v_1, v_2, t_2), \dots, (v_{k-1}, v_k, t_k) \rangle$ disebut \textit{time-respecting} jika dan hanya jika:
+$$ t_1 \le t_2 \le \dots \le t_k $$
+Atau, jika ada waktu transmisi $\delta$, maka $t_{i} + \delta \le t_{i+1}$.
+
+Implikasi utama dari konsep ini adalah bahwa keterhubungan tidak bersifat transitif dengan cara yang sederhana. Jika A terhubung ke B, dan B terhubung ke C, belum tentu A terhubung ke C (karena kontak B-C mungkin terjadi \textit{sebelum} A-B).
+
+\section{Temporal Connectivity}
+Konektivitas dalam graf temporal bersifat dinamis dan asimetris.
+\begin{itemize}
+    \item \textbf{Strongly Connected}: Dua simpul $u$ dan $v$ dikatakan terhubung kuat secara temporal jika ada time-respecting path dari $u$ ke $v$ \textbf{dan} dari $v$ ke $u$ dalam interval waktu tertentu.
+    \item \textbf{Weakly Connected}: Jika kita mengabaikan arah sisi, namun tetap memperhatikan urutan waktu.
+    \item \textbf{Recurrent Connectivity}: Apakah pasangan simpul terhubung secara berulang sepanjang waktu, atau hanya sekali?
+\end{itemize}
+
+\section{Temporal Reachability}
+Reachability atau keterjangkauan mengukur seberapa besar bagian jaringan yang dapat dipengaruhi oleh satu simpul.
+\begin{itemize}
+    \item \textbf{Forward Reachability set ($R_{out}(u, t)$)}: Himpunan semua simpul $v$ yang dapat dicapai dari $u$ memulai perjalanan pada waktu $\ge t$. Ini penting untuk analisis dampak ("seberapa luas virus ini bisa menyebar?").
+    \item \textbf{Backward Reachability set ($R_{in}(v, t)$)}: Himpunan semua simpul $u$ yang dapat mencapai $v$ sebelum waktu $t$. Ini penting untuk pelacakan sumber ("siapa pasien nol-nya?").
+\end{itemize}
+
+\section{Duration dan Latency}
+Metrik jarak dalam graf temporal memiliki dimensi waktu.
+\begin{itemize}
+    \item \textbf{Topological Distance}: Jumlah \textit{hops} (langkah) dalam time-respecting path terpendek.
+    \item \textbf{Temporal Duration}: Selisih waktu antara awal perjalanan dan akhir perjalanan ($t_{end} - t_{start}$).
+    \item \textbf{Latency}: Waktu tunggu minimal yang diperlukan di setiap simpul perantara untuk melanjutkan perjalanan ke simpul berikutnya.
+\end{itemize}
+
+\part{Algoritma dan Teknik}
+
+\chapter{Temporal Path Analysis}
+Analisis jalur adalah komponen fundamental dalam graph analytics. Dalam graf temporal, konsep "jarak terpendek" menjadi ambigu karena ada dua dimensi biaya: topologi (jumlah hop) dan waktu (durasi). Bab ini membahas algoritma untuk menemukan berbagai jenis jalur optimal dalam graf yang berubah waktu.
+
+\section{Shortest Temporal Paths}
+Jalur terpendek temporal (\textit{Shortest Temporal Path}) biasanya didefinisikan sebagai jalur yang meminimalkan "jarak topologi" atau jumlah sisi yang dilalui, dengan syarat mutlak harus menghormati urutan waktu (\textit{time-respecting}).
+
+\subsection{Algoritma Dijkstra Temporal}
+Algoritma Dijkstra klasik dapat dimodifikasi untuk menangani sisi berwaktu. Alih-alih hanya menyimpan satu nilai jarak $d[v]$, kita perlu melacak **waktu kedatangan** minimal $\tau[v]$ di simpul $v$.
+Relaksasi sisi $(u, v)$ yang aktif pada waktu $t$ hanya valid jika $t \ge \tau[u]$. Jika valid, kita dapat memperbarui $\tau[v] = t + \delta$ (di mana $\delta$ adalah durasi traversi).
+Tantangan utamanya adalah bahwa jalur dengan jumlah hop tersedikit mungkin baru tersedia di masa depan yang jauh, sehingga tidak optimal secara waktu.
+
+\subsection{Time-Dependent Shortest Paths}
+Dalam banyak kasus, bobot sisi adalah fungsi dari waktu, $w(t)$. Contohnya adalah waktu tempuh jalan raya yang bergantung pada jam sibuk. Algoritma harus memperhitungkan waktu keberangkatan $t_{start}$ karena $SP(u, v, t_{8:00})$ mungkin sangat berbeda dengan $SP(u, v, t_{23:00})$. Konsep \textit{FIFO property} (First-In First-Out) sering menjadi asumsi penting agar algoritma tetap efisien.
+
+\section{Fastest Paths}
+Berbeda dengan \textit{shortest path}, **Fastest Path** bertujuan meminimalkan durasi total perjalanan dari sumber ke tujuan, yaitu meminimalkan $t_{arrival} - t_{departure}$.
+Jalur tercepat mungkin melibatkan lebih banyak hop (sisi) tetapi dengan waktu transfer yang lebih singkat antar sisi.
+Algoritma pencarian jalur tercepat seringkali lebih relevan untuk aplikasi seperti routing paket data atau logistik pengiriman barang di mana waktu adalah biaya utama.
+
+\section{Temporal Betweenness}
+Betweenness Centrality mengukur seberapa sering sebuah simpul menjadi perantara dalam jalur terpendek antar pasangan simpul lain.
+Dalam konteks temporal, \textbf{Temporal Betweenness} menghitung proporsi \textit{shortest temporal paths} (atau \textit{fastest paths}) yang melalui simpul $v$. Simpul dengan temporal betweenness tinggi adalah "jembatan waktu" yang krusial untuk aliran informasi. Hilangnya simpul ini dapat memutuskan komunikasi pada interval waktu tertentu, meskipun secara topologi graf terlihat terhubung.
+
+\section{Temporal Closeness}
+Closeness Centrality mengukur seberapa dekat sebuah simpul ke semua simpul lain dalam jaringan.
+\textbf{Temporal Closeness} dari simpul $u$ pada waktu $t$ sering didefinisikan berdasarkan rata-rata durasi waktu yang diperlukan untuk mencapai semua simpul lain $v \in V$ dimulai dari waktu $t$. Simpul dengan nilai ini yang tinggi adalah penyebar informasi yang sangat efektif karena dapat mencapai seluruh jaringan dalam waktu singkat.
+
+\chapter{Temporal Community Detection}
+Dalam jaringan temporal, komunitas (kelompok simpul yang terhubung erat) bukanlah entitas yang statis. Komunitas dapat lahir, tumbuh, menyusut, membelah, bergabung, dan akhirnya mati. Bab ini membahas metode untuk mendeteksi dan melacak evolusi struktur komunitas ini seiring berjalannya waktu.
+
+\section{Evolving Communities}
+Komunitas yang berevolusi (\textit{evolving communities}) mencerminkan dinamika kelompok sosial atau fungsional yang sebenarnya. Tantangan utamanya adalah menjaga konsistensi identitas komunitas: bagaimana kita tahu bahwa komunitas A pada waktu $t$ adalah "sama" dengan komunitas A' pada waktu $t+1$?
+
+\subsection{Community Evolution Patterns}
+Taksonomi standar untuk operasi evolusi komunitas meliputi:
+\begin{itemize}
+    \item \textbf{Birth/Formation}: Munculnya komunitas baru yang tidak ada sebelumnya.
+    \item \textbf{Growth/Expansion}: Komunitas mendapatkan anggota baru.
+    \item \textbf{Contraction/Shrinkage}: Komunitas kehilangan anggota.
+    \item \textbf{Merger}: Dua atau lebih komunitas bergabung menjadi satu.
+    \item \textbf{Split}: Satu komunitas pecah menjadi dua atau lebih komunitas yang lebih kecil.
+    \item \textbf{Death/Dissolution}: Komunitas menghilang atau anggotanya tersebar.
+    \item \textbf{Resurgence}: Komunitas yang sempat mati muncul kembali setelah beberapa waktu (pola berulang).
+\end{itemize}
+
+\subsection{Community Tracking}
+Proses pelacakan (\textit{tracking}) bertujuan untuk memetakan komunitas $C_t$ pada snapshot $t$ ke komunitas $C_{t+1}$ pada snapshot berikutnya.
+Metode umum menggunakan ukuran kemiripan himpunan, seperti \textbf{Jaccard Index}:
+$$ J(C_t, C_{t+1}) = \frac{|C_t \cap C_{t+1}|}{|C_t \cup C_{t+1}|} $$
+Jika $J$ melebihi ambang batas tertentu, kedua komunitas dianggap sebagai kelanjutan satu sama lain. Pendekatan lain menggunakan "batu loncatan" atau \textit{core nodes} yang stabil untuk mempertahankan identitas komunitas.
+
+\section{Temporal Clustering Algorithms}
+Algoritma klastering temporal harus menyeimbangkan dua tujuan yang sering bertentangan: **kualitas snapshot** (komunitas harus padat pada waktu $t$) dan **kestabilan temporal** (komunitas tidak boleh berubah drastis secara acak antar waktu).
+
+\subsection{Dynamic Louvain Method}
+Metode Louvain adalah standar industri untuk deteksi komunitas statis berbasis modularitas. Versi dinamisnya sering kali menggunakan pendekatan inkremental.
+Alih-alih memulai dari awal untuk setiap snapshot, partisi dari waktu $t$ digunakan sebagai inisialisasi untuk waktu $t+1$. Ini mempercepat konvergensi dan secara alami mempromosikan kestabilan temporal (\textit{temporal smoothing}).
+
+\subsection{Temporal Label Propagation}
+Dalam Label Propagation Algorithm (LPA), setiap simpul mengambil label mayoritas dari tetangganya. Pada versi temporal, label simpul $v$ pada waktu $t$ dipengaruhi oleh:
+1. Tetangga struktural $v$ pada waktu $t$.
+2. Label diri sendiri atau tetangga pada waktu $t-1$ (memori).
+Metode ini sangat cepat dan efisien, cocok untuk jaringan skala besar.
+
+\section{Event Detection dalam Temporal Communities}
+Perubahan drastis dalam struktur komunitas sering kali menjadi indikator anomali atau kejadian penting di dunia nyata.
+Misalnya, dalam jaringan komunikasi perusahaan, \textit{split} mendadak dari sebuah komunitas besar mungkin menandakan restrukturisasi organisasi atau konflik internal. Dalam jaringan sosial, \textit{merger} cepat dari berbagai komunitas terpisah bisa menandakan respons kolektif terhadap satu peristiwa berita yang memviralkan topik tertentu. Analisis ini mengubah deteksi komunitas dari sekadar deskripsi statistik menjadi alat monitoring yang proaktif.
+
+\chapter{Temporal Centrality Measures}
+Mengukur kepentingan sebuah simpul dalam jaringan yang berubah waktu jauh lebih dinamis daripada graf statis. "Pentingnya" seseorang bisa berfluktuasi: seorang politisi mungkin sangat sentral selama masa pemilu (derajat tinggi, PageRank tinggi), namun menjadi pinggiran setelah masa jabatan berakhir. Bab ini membahas metrik sentralitas yang memperhitungkan faktor waktu.
+
+\section{Temporal Degree Centrality}
+Metrik paling sederhana namun fundamental. Dalam graf temporal, derajat simpul adalah fungsi waktu $k_i(t)$.
+\begin{itemize}
+    \item \textbf{Instantaneous Degree}: Jumlah sisi yang aktif terhubung ke simpul $i$ tepat pada waktu $t$.
+    \item \textbf{Average Temporal Degree}: Rata-rata derajat simpul sepanjang durasi observasi $T$.
+    \item \textbf{Active Intervals}: Alih-alih hanya menghitung sisi, kita bisa menghitung berapa lama simpul tersebut "aktif" (memiliki setidaknya satu koneksi).
+\end{itemize}
+
+\section{Temporal Betweenness Centrality}
+Seperti dibahas pada Bab 4, metrik ini mengukur kontrol terhadap arus informasi. Secara formal, Temporal Betweenness dari simpul $v$ pada interval $[0, T]$ adalah:
+$$ C_B(v) = \sum_{s \ne v \ne t} \frac{\sigma_{st}(v)}{\sigma_{st}} $$
+Di mana $\sigma_{st}$ adalah jumlah \textit{time-respecting paths} terpendek (atau tercepat) dari $s$ ke $t$, dan $\sigma_{st}(v)$ adalah jumlah jalur tersebut yang melewati $v$. Simpul dengan nilai tinggi adalah "penjaga gerbang" temporal yang jika dihapus akan memutus atau memperlambat komunikasi secara signifikan.
+
+\section{Temporal Closeness Centrality}
+Mengukur seberapa cepat informasi dari simpul $u$ dapat menyebar ke seluruh jaringan.
+$$ C_C(u) = \frac{1}{\sum_{v \ne u} d_{temp}(u, v)} $$
+Di mana $d_{temp}(u, v)$ adalah durasi temporal jalur tercepat dari $u$ ke $v$. Jika $v$ tidak dapat dicapai dari $u$ secara temporal (karena batasan kausalitas), jarak biasanya didefinisikan sebagai $\infty$ atau nilai maksimum $T$, memberikan penalti besar pada skor sentralitas.
+
+\section{Temporal PageRank}
+Algoritma PageRank klasik mengasumsikan pejalan acak (\textit{random walker}) berpindah selamanya dalam graf statis. Dalam graf temporal, sisi-sisi menghilang.
+Model \textbf{Temporal PageRank} sering memodifikasi persamaan standar dengan faktor peluruhan waktu (\textit{time decay}). Aktivitas terbaru memberikan kontribusi bobot lebih besar daripada aktivitas lampau.
+$$ PR(u, t) = (1-\alpha) \sum_{v \to u} PR(v, t-1) \cdot w(v, u, t) + \alpha \frac{1}{N} $$
+Di mana $\alpha$ adalah faktor \textit{teleport} dan bobot $w$ dapat mengecil seiring berjalannya waktu (\textit{aging}).
+
+\section{Temporal Katz Centrality}
+Katz Centrality menghitung jumlah semua perjalanan (\textit{walks}) yang masuk ke simpul, dengan penalti eksponensial untuk perjalanan yang panjang.
+Dalam versi temporal, kita juga memberikan penalti untuk perjalanan yang "tua".
+$$ C_{Katz}(i, t) = \sum_{j} \sum_{\text{walks } p: j \to i} \beta^{\text{len}(p)} \cdot \theta^{\text{age}(p)} $$
+Di mana $\beta < 1$ adalah atenuasi panjang jalur, dan $\theta < 1$ adalah atenuasi waktu. Ini menekankan bahwa pengaruh sosial memudar seiring jarak topologi DAN jarak waktu.
+
+\chapter{Temporal Motifs dan Patterns}
+Motif adalah pola subgraph kecil yang berulang secara signifikan dalam sebuah jaringan, sering dianggap sebagai "blok bangunan" (\textit{building blocks}) dari struktur jaringan yang kompleks. Dalam graf temporal, motif tidak hanya ditentukan oleh struktur topologi (siapa terhubung dengan siapa), tetapi juga oleh urutan kejadian (kapan hubungan terjadi).
+
+\section{Temporal Motif Discovery}
+Temporal motif didefinisikan sebagai urutan sisi-sisi $(u, v, t)$ yang membentuk pola struktural tertentu dalam rentang waktu $\delta$ (\textit{time window}).
+Contoh sederhana:
+\begin{itemize}
+    \item \textbf{Ping-Pong / Reciprocity}: $A \to B$ pada $t_1$, lalu $B \to A$ pada $t_2$, dengan $t_1 < t_2$.
+    \item \textbf{Feed-Forward Loop}: $A \to B$ ($t_1$), $B \to C$ ($t_2$), $A \to C$ ($t_3$). Urutan waktu sangat krusial; jika $A \to C$ terjadi sebelum $B \to C$, maknanya mungkin berbeda (bukan "menutup" segitiga sebagai hasil pengaruh tidak langsung).
+\end{itemize}
+Penemuan motif melibatkan penghitungan frekuensi kemunculan pola-pola ini di seluruh jaringan, yang secara komputasi jauh lebih berat daripada motif statis karena kombinatorial waktu.
+
+\section{Frequent Temporal Patterns}
+Tujuannya adalah menemukan pola yang frekuensinya melebihi ambang batas tertentu (\textit{support threshold}).
+Masalah ini menantang karena sifat \textit{non-monotonicity}: sebuah pola mungkin sering muncul dalam jendela waktu 1 jam, tetapi jarang dalam jendela 1 hari. Algoritma seperti \textit{Apriori-based mining} sering diadaptasi untuk menangani dimensi waktu.
+
+\section{Temporal Subgraph Mining}
+Lebih umum daripada motif (yang biasanya kecil, 3-5 node), \textit{subgraph mining} mencari pola sub-struktur yang lebih besar yang berevolusi.
+Teknik ini berguna untuk menemukan struktur organisasi yang stabil atau pola serangan terkoordinasi dalam jaringan komputer. Representasi graf sering diubah menjadi \textit{sequence of events} untuk menerapkan algoritma \textit{Sequential Pattern Mining} (misalnya GSP atau PrefixSpan).
+
+\section{Anomaly Detection}
+Motif temporal sangat efektif untuk mendeteksi anomali.
+\begin{itemize}
+    \item \textbf{Polafikasi Perilaku Normal}: Kita bisa membangun profil "normal" dari distribusi motif sebuah simpul (misalnya, user biasa memiliki rasio motif "bintang" dan "segitiga" tertentu).
+    \item \textbf{Deteksi Penyimpangan}: Jika tiba-tiba sebuah simpul terlibat dalam pola "bintang" (mengirim pesan ke banyak orang dalam waktu singkat) yang menyimpang dari profil sejarahnya atau profil rata-rata jaringan, ini bisa menjadi indikator bot, spammer, atau serangan DDoS.
+    \item \textbf{Burst Detection}: Lonjakan tiba-tiba dalam frekuensi motif tertentu dapat menandakan kejadian eksternal (berita sela) yang memicu perubahan pola interaksi.
+\end{itemize}
+
+\chapter{Temporal Graph Embedding}
+Representasi vektor (embedding) dari simpul dan sisi telah merevolusi cara kita menerapkan *machine learning* pada data graf. Tantangan dalam graf temporal adalah menghasilkan embedding yang tidak statis, melainkan dapat menangkap evolusi peran dan posisi simpul seiring waktu.
+
+\section{Static Graph Embedding Review}
+Metode statis seperti DeepWalk dan Node2Vec menggunakan *random walks* untuk mensimulasikan "kalimat" dari "kata-kata" (simpul), lalu menerapkan algoritma Skip-Gram (seperti Word2Vec). Kelemahan utamanya adalah mereka mengabaikan dimensi waktu; urutan $(u, v)$ dianggap sama validnya kapan saja terjadi, dan informasi kausalitas hilang total.
+
+\section{Dynamic Graph Embedding}
+Metode ini mencoba memodifikasi pendekatan *random walk* agar menghormati batasan waktu.
+
+\subsection{Temporal Random Walk}
+Sebuah *temporal random walk* didefinisikan sebagai urutan simpul yang dikunjungi $v_1, v_2, \dots, v_k$ sedemikian rupa sehingga waktu interaksi sisi $(v_i, v_{i+1})$ selalu lebih besar atau sama dengan $(v_{i-1}, v_i)$. Hal ini memastikan embedding yang dihasilkan hanya menangkap kedekatan simpul yang valid secara kausalitas.
+
+\subsection{Temporal Node2Vec}
+Salah satu algoritma representatif adalah \textbf{CTDNE} (Continuous-Time Dynamic Network Embeddings). Algoritma ini melakukan sampling *temporal random walks* dan kemudian melatih model Skip-Gram. Hasilnya adalah vektor statis yang merepresentasikan properti temporal simpul secara agregat, atau vektor dinamis jika dilatih per-window.
+
+\section{Continuous-Time Dynamic Embeddings}
+Berbeda dengan pendekatan diskrit (snapshot), pendekatan waktu kontinu memperbarui embedding \textit{setiap kali} ada kejadian (interaksi) baru. Ini sangat penting untuk aplikasi *real-time* seperti deteksi penipuan kartu kredit, di mana model tidak bisa menunggu "akhir hari" untuk memperbarui representasi user.
+
+\section{Deep Learning Approaches}
+Pendekatan terkini menggunakan *Graph Neural Networks* (GNN) yang dikombinasikan dengan arsitektur memori.
+
+\subsection{Temporal Graph Neural Networks (TGN)}
+TGN adalah kerangka kerja umum yang menggabungkan memori simpul (untuk menyimpan *state* jangka panjang) dan modul embedding berbasis grafik (untuk menangkap informasi lingkungan lokal). Setiap kali ada interaksi $(u, v, t)$, memori $u$ dan $v$ diperbarui menggunakan fungsi seperti GRU atau LSTM.
+
+\subsection{Recurrent GNN}
+Metode seperti \textbf{EvolveGCN} menggunakan RNN untuk memprediksi parameter GCN pada langkah waktu berikutnya. Ide utamanya adalah bahwa parameter matriks bobot GCN itu sendiri berevolusi seiring waktu, menangkap dinamika perubahan struktur global.
+
+\subsection{Temporal Graph Attention Networks}
+\textbf{TGAT} menggunakan mekanisme *self-attention* untuk mengagregasi fitur dari tetangga temporal. Alih-alih melakukan *pooling* sederhana, TGAT memberikan bobot perhatian (attention weights) yang berbeda-beda tergantung pada seberapa baru interaksi tersebut terjadi dan fiturnya, membuang kebutuhan akan snapshot diskrit.
+
+\part{Analisis dan Visualisasi}
+
+\chapter{Temporal Graph Metrics}
+Statistik makro memberikan gambaran ringkas tentang karakteristik global jaringan temporal. Metrik-metrik ini membantu kita memahami sifat dinamis data tanpa harus melihat setiap interaksi individu.
+
+\section{Temporal Density}
+Kepadatan graf statis adalah rasio sisi yang ada terhadap total sisi yang mungkin. Dalam konteks temporal, kepadatan berfluktuasi.
+\textbf{Temporal Density} pada waktu $t$ didefinisikan sebagai kepadatan snapshot $G_t$. Kita sering melihat plot kepadatan vs waktu untuk mengidentifikasi periode aktivitas tinggi (misalnya siang hari) dan rendah (malam hari).
+
+\section{Temporal Diameter}
+Diameter temporal adalah panjang jalur temporal terpendek maksimum antar pasangan simpul di jaringan.
+Berbeda dengan diameter statis yang cenderung konstan atau mengecil perlahan (fenomena *small world*), diameter temporal bisa sangat bervariasi. "Jarak" antara dua orang bisa menjadi 2 jam pada siang hari, tetapi 8 jam pada malam hari karena tidak ada perantara yang aktif.
+
+\section{Burstiness Measures}
+Aktivitas manusia jarang seragam. Kita cenderung mengirim banyak pesan dalam waktu singkat, lalu diam untuk waktu yang lama. Sifat ini disebut **Burstiness**.
+Metrik $B$ sering dihitung berdasarkan koefisien variasi ($\sigma / \mu$) dari waktu antar-kejadian (\textit{inter-event times}) $\tau$:
+$$ B = \frac{\sigma_\tau - \mu_\tau}{\sigma_\tau + \mu_\tau} $$
+Nilai $B=1$ menandakan sinyal sangat *bursty*, $B=0$ adalah acak (Poisson), dan $B=-1$ adalah periodik sempurna.
+
+\section{Temporal Assortativity}
+Assortativity (homophily) mengukur kecenderungan simpul untuk terhubung dengan simpul lain yang mirip (misalnya derajat tinggi dengan derajat tinggi).
+Dalam graf temporal, kita bisa mengukur apakah simpul yang "aktif" cenderung terhubung dengan simpul yang juga sedang "aktif" atau populer saat itu. Ini penting untuk memahami dinamika "rich-get-richer" dalam skala waktu pendek.
+
+\section{Inter-Event Time Distribution}
+Distribusi waktu antara dua kejadian berturut-turut (IET) pada sebuah sisi atau simpul adalah salah satu karakteristik paling universal dari jaringan temporal.
+Jaringan manusia biasanya mengikuti distribusi *Heavy-tailed* atau *Power-law* ($P(\tau) \sim \tau^{-\alpha}$), berbeda dengan proses acak Poisson yang mengikuti distribusi Eksponensial. Ini memiliki implikasi besar: penyebaran informasi bisa sangat lambat di "ekor" distribusi (waktu tunggu lama) namun sangat cepat saat terjadi "burst".
+
+\chapter{Temporal Graph Sampling}
+Analisis graf temporal skala besar seringkali membutuhkan komputasi yang sangat mahal. Sampling bertujuan mengurangi ukuran data sambil mempertahankan properti struktural dan temporal yang penting dari graf asli.
+
+\section{Strategi Sampling}
+Metode sampling statis (seperti random node sampling) sering gagal mempertahankan struktur temporal. Strategi khusus diperlukan.
+
+\subsection{Temporal Random Sampling}
+Pendekatan paling sederhana adalah melakukan sampling sisi secara seragam dari seluruh rentang waktu. Namun, ini cenderung memutus jalur temporal yang panjang (time-respecting paths).
+Alternatifnya adalah \textit{Time-Window Sampling}: mengambil semua interaksi yang terjadi dalam interval $[t_a, t_b]$. Ini mempertahankan struktur lokal temporal dengan sempurna, tetapi memotong riwayat jangka panjang.
+
+\subsection{Importance Sampling}
+Mengambil sampel berdasarkan probabilitas yang tidak seragam, misalnya memprioritaskan sisi yang menghubungkan "jembatan" antar komunitas atau sisi dengan *betweenness* tinggi. Dalam konteks temporal, kita mungkin memprioritaskan sisi yang sering terlibat dalam motif temporal atau yang memiliki *recency* tinggi.
+
+\section{Preservation Properties}
+Tujuan utama sampling adalah:
+\begin{itemize}
+    \item \textbf{Topological Preservation}: Distribusi derajat, clustering coefficient tetap mirip dengan graf asli.
+    \item \textbf{Temporal Preservation}: Distribusi waktu antar-kejadian (inter-event times) dan properti burstiness harus dipertahankan. Jika sampling meratakan "burst", simulasi penyebaran virus di atas sampel akan memberikan hasil yang salah (terlalu lambat).
+\end{itemize}
+
+\section{Bias dan Trade-offs}
+Setiap metode memiliki bias.
+\begin{itemize}
+    \item \textbf{Connectivity Bias}: Sampling acak cenderung menghancurkan komponen raksasa (\textit{giant component}) menjadi fragmen-fragmen kecil.
+    \item \textbf{Temporal Bias}: Sampling berbasis interval waktu dapat melebih-lebihkan kepadatan sesaat dan mengabaikan peran simpul yang jarang aktif namun penting sebagai penghubung jangka panjang.
+\end{itemize}
+Pemilihan metode harus disesuaikan dengan tujuan analisis (misalnya: untuk estimasi metrik vs untuk visualisasi).
+
+\chapter{Visualisasi Temporal Graph}
+Memvisualisasikan graf yang berubah seiring waktu adalah tantangan ganda: kita harus menampilkan struktur topologi yang rumit sekaligus evolusinya. Pilihan teknik visualisasi sangat bergantung pada tugas analisis: apakah mencari anomali sesaat atau memahami tren jangka panjang.
+
+\section{Timeline-based Visualization}
+Pendekatan ini memetakan waktu secara eksplisit ke sumbu spasial (biasanya sumbu X).
+\begin{itemize}
+    \item \textbf{Egocentric View}: Fokus pada satu simpul, menampilkan garis waktu interaksi simpul tersebut dengan tetangganya.
+    \item \textbf{Arc Diagrams}: Simpul-simpul disusun secara linear, dan sisi digambar sebagai busur (arc). Perubahan waktu bisa ditampilkan dengan menumpuk beberapa diagram (\textit{small multiples}) atau menggunakan satu diagram panjang di mana sumbu X adalah waktu.
+\end{itemize}
+
+\section{Animation Techniques}
+Animasi menggunakan waktu fisik (durasi video) untuk merepresentasikan waktu data.
+Metode \textbf{Node-Link Animation} menampilkan simpul dan sisi yang bergerak, muncul, dan menghilang.
+Isi utama dari teknik ini adalah \textit{Mental Map Preservation}: posisi simpul tidak boleh berpindah terlalu drastis antar frame agar pengguna tidak bingung, namun harus cukup fleksibel untuk mengakomodasi perubahan struktur (misalnya, pembentukan klaster baru). Algoritma *dynamic force-directed layout* sering digunakan untuk menyeimbangkan stabilitas dan akurasi.
+
+\section{Aggregated Views}
+Jika data terlalu padat untuk animasi individu, agregasi diperlukan.
+\textbf{Massive Sequence Views} dapat merangkum ribuan interaksi menjadi *heatmap* atau *density plots*, di mana warna merepresentasikan intensitas aktivitas pada waktu tertentu. Ini efektif untuk melihat pola makro seperti "jam sibuk" atau "pola mingguan".
+
+\section{Interactive Exploration Tools}
+Alat modern tidak pasif. Fitur interaktif seperti \textit{Time Slider} memungkinkan pengguna untuk "memutar ulang" kejadian, memperlambat pada momen kritis, atau melompat ke interval waktu tertentu. Fitur \textit{Brushing and Linking} memungkinkan pengguna memilih sekumpulan simpul di satu tampilan (misalnya histogram derajat) dan melihat sorotan simpul yang sama di tampilan graf utama. Alat seperti Gephi (dengan plugin streaming) atau library web seperti D3.js/Vis.js sering digunakan.
+
+\chapter{Scalability dan Performance}
+Seiring dengan meningkatnya volume data interaksi (media sosial, log transaksi), efisiensi komputasi menjadi krusial. Bab ini membahas teknik untuk menyimpan dan memproses graf temporal skala besar.
+
+\section{Data Structures untuk Temporal Graphs}
+Penyimpanan naif (seperti daftar sisi mentah) seringkali tidak efisien untuk query kompleks.
+\begin{itemize}
+    \item \textbf{Compressed Adjacency Lists}: Mengompresi daftar waktu interaksi menggunakan *delta encoding* atau *variable-byte encoding* karena stempel waktu cenderung berurutan.
+    \item \textbf{Index Structures}: Pohon interval ($k^2$-trees) atau *Time-interval trees* memungkinkan query rentang waktu ("tampilkan semua sisi aktif antara t1 dan t2") dengan kompleksitas logaritmik.
+\end{itemize}
+
+\section{Parallel dan Distributed Processing}
+Pemrosesan graf temporal dapat diparalelisasi dengan dua strategi utama:
+\begin{enumerate}
+    \item \textbf{Time Slicing}: Membagi rentang waktu total menjadi interval-interval (bulan Januari, Februari, dst.) yang diproses secara terpisah oleh mesin berbeda. Tantangannya adalah menangani interaksi yang melintasi batas interval.
+    \item \textbf{Graph Partitioning}: Membagi simpul-simpul graf ke berbagai mesin. Tantangannya adalah meminimalkan komunikasi antar-mesin karena sisi temporal sering menghubungkan partisi yang berbeda.
+\end{enumerate}
+Framework seperti Apache GraphX atau Flink Gelly memiliki ekstensi untuk mendukung operasi ini.
+
+\section{Streaming Algorithms}
+Dalam banyak skenario (misalnya deteksi intrusi jaringan), data datang terus menerus dan tidak muat di memori.
+Algoritma *streaming* memproses setiap sisi $(u, v, t)$ yang masuk satu kali saja (\textit{single pass}) dan memperbarui struktur ringkasan (\textit{sketch}) di memori kecil. Contohnya adalah menghitung jumlah segitiga secara estimasi atau mendeteksi *heavy hitters* (simpul dengan derajat tinggi) secara real-time.
+
+\section{Approximation Methods}
+Untuk metrik yang sangat mahal dihitung secara eksak (seperti Temporal Betweenness atau Diameter), metode aproksimasi digunakan.
+Sampling berbasis *random walk* atau teknik sketsa probabilistik (seperti HyperLogLog untuk menghitung reachability) dapat memberikan estimasi dengan jaminan batas kesalahan ($\epsilon$-approximation) jauh lebih cepat daripada algoritma eksak.
+
+\part{Aplikasi}
+
+\chapter{Social Network Analysis}
+Analisis Jejaring Sosial (SNA) adalah salah satu domain aplikasi terbesar untuk graf temporal. Interaksi manusia secara inheren dinamis: pertemanan terbentuk dan putus, pesan dikirim dan diterima, dan tren muncul dan menghilang.
+
+\section{Diffusion dan Information Spreading}
+Dalam graf statis, difusi informasi dimodelkan menggunakan model epidemi (SI, SIR) di atas topologi tetap. Dalam graf temporal, **urutan kontak** menentukan jalur difusi yang mungkin.
+Informasi "hoax" atau "viral" menyebar melalui jalur \textit{time-respecting}. Jeda waktu antar interaksi (\textit{waiting times}) sangat mempengaruhi kecepatan penyebaran global. Studi menunjukkan bahwa distribusi waktu antar-kejadian yang berekor panjang (\textit{heavy-tailed}) cenderung memperlambat penyebaran difusi dibandingkan dengan asumsi acak Poisson.
+
+\section{Influence Maximization}
+Masalah klasik: "Siapa $k$ orang yang harus saya berikan sampel produk gratis agar promosi menyebar ke sebanyak mungkin orang?"
+Dalam konteks temporal, pertanyaan ini berubah menjadi: "Siapa yang harus saya targetkan **sekarang** (atau pada waktu $t$) agar menyebar maksimal dalam jendela waktu $\Delta t$?"
+Influencer terbaik pada pagi hari mungkin berbeda dengan influencer terbaik pada malam hari. Algoritma \textit{Temporal Influence Maximization} mempertimbangkan ketersediaan jalur temporal dan kedaluwarsa pengaruh (sebuah tweet hanya relevan untuk beberapa jam).
+
+\section{Link Prediction}
+Memprediksi interaksi masa depan berdasarkan riwayat masa lalu.
+\begin{itemize}
+    \item \textbf{Recency}: Interaksi yang baru terjadi lebih mungkin terulang.
+    \item \textbf{Periodicity}: Jika A menghubungi B setiap hari Senin jam 9, prediksi harus mempertimbangkan siklus ini.
+    \item \textbf{Triadic Closure Temporal}: Jika A baru saja bertemu B, dan B baru saja bertemu C, seberapa besar kemungkinan A akan bertemu C dalam waktu dekat?
+\end{itemize}
+
+\section{User Behavior Analysis}
+Analisis ini berfokus pada pola aktivitas individu, bukan struktur jaringan.
+Kita dapat memodelkan ritme sirkadian (pola tidur/bangun pengguna), mendeteksi perubahan perilaku tiba-tiba (churn prediction - pengguna yang akan berhenti menggunakan layanan), atau mengklasifikasikan peran pengguna (misal: "bot" vs "manusia") berdasarkan distribusi waktu antar-klik mereka.
+
+\chapter{Transportation Networks}
+Sistem transportasi adalah contoh klasik dari jaringan temporal kontinu. Kondisi jaringan (kemacetan, ketersediaan jadwal) berubah setiap menit, sehingga solusi statis menjadi tidak relevan.
+
+\section{Traffic Flow Analysis}
+Pada jaringan jalan, simpul adalah persimpangan dan sisi adalah segmen jalan. Bobot sisi $w(e, t)$ merepresentasikan waktu tempuh yang bergantung waktu.
+Analisis temporal membantu memodelkan propagasi kemacetan: bagaimana kemacetan di jalan A pada jam 08:00 menyebabkan kemacetan di jalan B pada jam 08:15 (\textit{domino effect}). Teknik prediksi berbasis Graph Neural Networks (seperti ST-GCN: Spatio-Temporal Graph Convolutional Networks) sangat populer di sini.
+
+\section{Route Optimization}
+Pencarian rute bukan hanya tentang jarak terpendek, tetapi waktu kedatangan tercepat.
+Masalah **Time-Dependent Shortest Path (TDSP)** harus diselesaikan. Jika pengemudi tiba di segmen jalan $e$ pada waktu $t$, durasi tempuhnya adalah $f_e(t)$.
+Algoritma harus memperhitungkan aturan \textit{FIFO} (First-In, First-Out): kendaraan yang masuk lebih dulu ke segmen jalan harus keluar lebih dulu. Tanpa asumsi ini, optimasi menjadi NP-hard.
+
+\section{Public Transit Networks}
+Jaringan transportasi umum (bus, kereta) memiliki jadwal diskrit.
+Dua pendekatan pemodelan utama:
+\begin{itemize}
+    \item \textbf{Time-Expanded Graph}: Setiap keberangkatan (departure event) di setiap stasiun menjadi simpul tersendiri. Ini membuat graf menjadi sangat besar tetapi memungkinkan penggunaan algoritma statis.
+    \item \textbf{Time-Dependent Graph}: Simpul tetap stasiun, tetapi fungsi bobot sisi berupa jadwal keberangkatan. Algoritma harus "menunggu" di simpul sampai jadwal keberangkatan berikutnya tersedia.
+\end{itemize}
+
+\section{Mobility Pattern Mining}
+Menganalisis data GPS atau check-in lokasi untuk memahami pergerakan populasi.
+Kita dapat mengekstraksi \textit{motif mobilitas} (misalnya pola Rumah $\to$ Kantor $\to$ Gym $\to$ Rumah) dan menggunakannya untuk perencanaan kota. Analisis ini juga penting untuk pemodelan \textit{ride-sharing}, di mana kita perlu mencocokkan permintaan penumpang (simpul asal-tujuan pada waktu $t$) dengan rute pengemudi secara real-time.
+
+\chapter{Biological Networks}
+Sistem biologis adalah sistem dinamis yang sangat kompleks, di mana interaksi antar komponen (molekul, sel, atau organ) terus berubah untuk merespons rangsangan lingkungan.
+
+\section{Protein Interaction Networks}
+Jaringan Interaksi Protein-Protein (PPI) sering digambarkan statis, padahal interaksi fisik antar protein bersifat sementara dan bergantung pada kondisi sel (fase siklus sel, stres panas).
+Analisis temporal membantu mengidentifikasi \textit{kompleks protein dinamis}: kelompok protein yang berkumpul hanya pada waktu tertentu untuk melakukan fungsi spesifik. "Temporal hubs" (protein yang berinteraksi dengan banyak mitra tetapi pada waktu yang berbeda) sering kali lebih esensial bagi kelangsungan hidup organisme daripada "static hubs".
+
+\section{Brain Connectivity Networks}
+Konektivitas otak terbagi menjadi struktural (fisik, statis jangka pendek) dan fungsional (korelasi aktivitas saraf, sangat dinamis).
+Graf temporal digunakan untuk memodelkan \textbf{Functional Connectivity (FC)} yang berubah dalam skala detik selama kognisi atau istirahat. Metrik temporal graph pada data fMRI atau EEG dapat menjadi biomarker untuk penyakit neurodegeneratif seperti Alzheimer atau epilepsi, di mana "fleksibilitas" jaringan otak sering kali terganggu.
+
+\section{Epidemic Spreading}
+Penyebaran penyakit menular adalah proses difusi di atas jaringan kontak temporal.
+Model kompartemen (SIR/SEIR) tradisional berasumsi pencampuran homogen (\textit{mass action}). Pendekatan jaringan temporal memperhitungkan struktur kontak yang sebenarnya: siapa bertemu siapa dan kapan.
+Konsep \textbf{Temporal Gillespie Algorithm} sering digunakan untuk simulasi stokastik yang akurat. Studi menunjukkan bahwa *burstiness* kontak manusia cenderung memperlambat fase awal epidemi tetapi membuatnya lebih sulit untuk diberantas sepenuhnya di fase akhir.
+
+\chapter{Communication Networks}
+Jaringan komunikasi adalah sumber data temporal graph yang paling melimpah dan mudah diakses. Karakteristik utamanya adalah sifat interaksi yang cepat, instan, dan sering meninggalkan jejak digital yang presisi (log).
+
+\section{Email Networks}
+Jaringan email (seperti dataset Enron) adalah studi kasus klasik. Interaksi bersifat berarah ($u \to v$) dan sering melibatkan banyak penerima (hyperedges).
+Analisis temporal pada email sering digunakan untuk mendeteksi **komunitas informal** dalam organisasi yang berbeda dari bagan organisasi resmi. *Response time analysis* dapat mengungkap hirarki kekuasaan: atasan cenderung lebih lambat membalas email bawahan daripada sebaliknya.
+
+\section{Telecommunication Networks}
+Call Detail Records (CDR) mencatat data telepon dan SMS dalam skala populasi besar.
+Graf ini bersifat masif namun jarang (\textit{sparse}). Analisis temporal pada CDR digunakan untuk memahami **mobilitas manusia** (karena menara seluler mencatat lokasi) dan **deteksi kejadian darurat** (lonjakan panggilan di area tertentu menandakan bencana atau kerusuhan).
+
+\section{Collaboration Networks}
+Jaringan kolaborasi ilmiah (co-authorship) atau artistik (aktor film) berevolusi lambat namun pasti.
+Sebuah sisi $(u, v, t)$ terbentuk saat dua peneliti menerbitkan makalah bersama pada tahun $t$. Analisis \textit{Team Formation} mencoba memprediksi tim sukses: apakah tim yang anggotanya sudah sering bekerja sama lebih sukses daripada tim baru? Jawabannya sering bergantung pada keseimbangan antara "familiarity" dan "freshness".
+
+\section{Citation Networks}
+Jaringan sitasi bersifat *Directed Acyclic Graph* (DAG) secara temporal: makalah tahun 2024 hanya bisa mensitasi makalah tahun < 2024.
+Analisis \textbf{Citation Dynamics} memodelkan popularitas makalah. Beberapa makalah mendapatkan sitasi secara konsisten (\textit{evergreen}), sementara yang lain meledak sesaat lalu hilang (\textit{sleeping beauties} adalah kebalikannya: tidur lama lalu meledak). Model *aging* dan *preferential attachment* temporal sangat relevan di sini.
+
+\chapter{Financial Networks}
+Jaringan keuangan adalah salah satu domain paling kritis dan berdampak tinggi untuk penerapan analisis graf temporal. Data keuangan hampir selalu memiliki stempel waktu (timestamp) yang presisi, dan urutan kejadian adalah kunci untuk memahami aliran dana, risiko sistemik, dan aktivitas kriminal.
+
+\section{Transaction Networks}
+Jaringan transaksi merepresentasikan aliran nilai antar entitas. Simpul adalah akun (bank, dompet kripto), dan sisi berarah berbobot $(u, v, w, t)$ adalah transfer sebesar $w$ pada waktu $t$.
+
+\subsection{Banking & Payment Systems}
+Dalam sistem pembayaran antarbank (RTGS), graf temporal digunakan untuk menganalisis risiko likuiditas. Jika Bank A gagal bayar pada pagi hari, bagaimana efek dominonya terhadap Bank B dan C pada sore hari? Analisis \textbf{DebtRank Temporal} memodelkan perambatan guncangan ini.
+
+\subsection{Cryptocurrency Networks (Blockchain)}
+Blockchain seperti Bitcoin dan Ethereum menyediakan data graf temporal publik yang masif.
+Struktur uniknya adalah \textit{Transaction Graph} (di mana simpul adalah transaksi itu sendiri) atau \textit{Address Graph}. Analisis aliran dana (\textit{taint analysis}) melacak pergerakan koin dari aktivitas ilegal (misal: peretasan bursa) melalui ribuan lompatan temporal untuk mencapai titik pencairan (exchange). Konsep \textit{Temporal Reachability} sangat vital di sini untuk menentukan "jarak bersih" sebuah dompet dari sumber dana gelap.
+
+\section{Stock Correlation Networks}
+Berbeda dengan jaringan transaksi yang eksplisit, jaringan pasar saham adalah graf implisit. Simpul adalah aset (saham, koin), dan sisi $(u, v, t)$ menandakan korelasi harga yang kuat antara $u$ dan $v$ pada jendela waktu $t$.
+
+\subsection{Dynamic Correlation & Portfolio Optimization}
+Korelasi antar aset tidak statis; ia berubah drastis saat krisis pasar (semua aset cenderung berkorelasi tinggi/jatuh bersamaan). Strategi \textbf{AI-Gated Markowitz} atau alokasi aset dinamis lainnya memanfaatkan graf korelasi temporal ini untuk:
+\begin{itemize}
+    \item \textbf{Diversifikasi Adaptif}: Memilih aset yang \textit{saat ini} tidak berkorelasi, bukan yang secara historis rata-rata tidak berkorelasi.
+    \item \textbf{Risk Contagion}: Mendeteksi simpul sentral dalam graf korelasi yang menjadi pemicu kejatuhan pasar.
+\end{itemize}
+
+\section{Fraud Detection}
+Penipuan keuangan modern dilakukan secara terorganisir dan canggih, sering dirancang untuk mengelabui sistem deteksi berbasis aturan statis.
+
+\subsection{Money Laundering Patterns (Smurfing/Structuring)}
+Pencucian uang melibatkan siklus temporal yang khas:
+1.  \textbf{Placement}: Dana besar dipecah ke banyak akun kecil (fan-out temporal).
+2.  \textbf{Layering}: Transfer berantai yang cepat dan acak untuk mengaburkan jejak.
+3.  \textbf{Integration}: Dana dikumpulkan kembali ke satu akun tujuan (fan-in temporal).
+Pola "Scatter-Gather" ini dapat dideteksi menggunakan algoritma pencarian \textit{Temporal Motifs} (misalnya motivasi siklus 3-hop atau n-hop dalam jendela waktu tertentu).
+
+\subsection{Temporal GNN for Anti-Money Laundering (AML)}
+Metode Deep Learning seperti \textbf{EvolveGCN} atau \textbf{TGN} (Temporal Graph Networks) dilatih untuk mengklasifikasikan simpul/transaksi sebagai "Illicit" atau "Licit".
+Fitur temporal sangat prediktif: penipu cenderung mentransfer dana sangat cepat setelah menerimanya (waktu tunggu mendekati nol), berbeda dengan pengguna normal yang menabung. Model yang memperhatikan distribusi interval waktu (\textit{inter-event times}) secara signifikan mengungguli model graf statis dalam mendeteksi pola ini.
+
+\chapter{IoT dan Sensor Networks}
+Internet of Things (IoT) menghasilkan aliran data temporal yang masif dari miliaran perangkat yang saling terhubung. Analisis graf temporal di sini berfokus pada pola komunikasi antar perangkat (M2M) dan korelasi kejadian fisik.
+
+\section{Device Interaction Patterns}
+Dalam jaringan IoT, topologi logis sering kali dinamis meskipun topologi fisiknya statis (perangkat tidak berpindah).
+Pola interaksi normal biasanya sangat periodik (misal: sensor suhu melapor ke gateway setiap 5 menit). Analisis graf temporal mendeteksi penyimpangan dari periodisitas ini atau pembentukan koneksi *ad-hoc* yang tidak sah, yang bisa mengindikasikan serangan siber (misal: botnet Mirai yang memindai perangkat rentan).
+
+\section{Event Correlation}
+Sensor yang berbeda sering kali memiliki hubungan kausalitas temporal.
+Contoh dalam *Smart Grid*: Peningkatan beban di Gardu A pada waktu $t$ menyebabkan penurunan tegangan di Gardu B pada waktu $t + \epsilon$.
+Membangun **Temporal Event Graph** memungkinkan kita melacak akar masalah (\textit{root cause analysis}) dari kegagalan sistem yang kompleks dengan menelusuri balik jalur kausalitas waktu.
+
+\section{Predictive Maintenance}
+Kegagalan peralatan jarang terjadi secara isolasi; tanda-tanda awal sering terlihat dari perubahan pola komunikasi.
+Jika sebuah node sensor mulai sering meminta pengiriman ulang paket (\textit{retry}) atau mengalami peningkatan latensi dalam jalur komunikasinya, metrik seperti *temporal closeness* atau *betweenness*-nya akan berubah. Memonitor evolusi metrik ini secara real-time memungkinkan operator melakukan perawatan sebelum terjadi kegagalan total (\textit{catastrophic failure}).
+
+\part{Advanced Topics}
+
+\chapter{Temporal Graph Prediction}
+Prediksi dalam graf temporal melampaui sekadar mengisi koneksi yang hilang. Tujuannya adalah meramalkan keadaan jaringan di masa depan berdasarkan tren evolusi historis.
+
+\section{Advanced Link Prediction}
+Berbeda dengan prediksi tautan heuristik di SNA, pendekatan modern menggunakan *Inductive Representation Learning*.
+Model harus mampu memprediksi interaksi masa depan $(u, v, t_{future})$ bahkan untuk simpul $u$ atau $v$ yang mungkin belum pernah terlihat sebelumnya (\textit{cold-start problem}). Pendekatan berbasis **Temporal Point Processes** dan **Recurrent GNN** digunakan untuk memodelkan probabilitas terjadinya interaksi kontinu, bukan hanya sekadar ada/tidaknya sisi.
+
+\section{Dynamic Node Classification}
+Banyak atribut simpul berubah seiring waktu: status infeksi seseorang, sentimen pengguna Twitter, atau peringkat kredit nasabah bank.
+Tugas ini memprediksi label $y_v(t)$ berdasarkan riwayat interaksi dan label sebelumnya $y_v(t-1), y_v(t-2), \dots$. Tantangannya adalah menangani pergeseran konsep (\textit{concept drift}) di mana distribusi label itu sendiri berubah seiring waktu (misalnya: definisi "perilaku normal" berubah saat musim liburan).
+
+\section{Graph Evolution Forecasting}
+Ini adalah masalah prediksi tingkat makro: bagaimana properti global graf (seperti ukuran, kepadatan, atau jumlah komunitas) akan berubah?
+Model generatif graph temporal (seperti *Temporal Kronecker Product Graph*) mencoba membangkitkan graf sintetis yang secara statistik tidak dapat dibedakan dari masa depan graf asli. Ini berguna untuk perencanaan kapasitas infrastruktur: "Berapa server yang kita butuhkan 6 bulan lagi jika pertumbuhan jaringan mengikuti tren eksponensial ini?"
+
+\chapter{Temporal Knowledge Graphs}
+Knowledge Graph tradisional menyimpan fakta berupa triple $(subjek, predikat, objek)$. Namun, sebagian besar pengetahuan dunia bersifat sementara. Temporal Knowledge Graph (TKG) mengatasi ini dengan menambahkan dimensi waktu.
+
+\section{Temporal Knowledge Representation}
+Representasi standar bergeser dari triple menjadi **Quadruple**: $(s, p, o, t)$ atau $(s, p, o, [t_{start}, t_{end}])$.
+Contoh fakta: (Barack Obama, president\_of, USA, [2009, 2017]).
+Selain itu, ontologi sendiri bisa berevolusi (schema evolution), namun TKG fokus pada validitas temporal dari instans fakta.
+
+\section{Temporal Reasoning}
+Penalaran pada TKG bertujuan menurunkan fakta baru yang valid secara temporal dari fakta yang ada.
+Aturan logika menjadi lebih kompleks:
+$$ \text{BornIn}(x, loc, t) \land \text{IsCityOf}(loc, country, t) \implies \text{Nationality}(x, country, t) $$
+Mesin inferensi harus memeriksa kompatibilitas interval waktu (intersection tidak kosong) sebelum menerapkan aturan transitif.
+
+\section{Temporal Query Processing}
+Bahasa query graf seperti SPARQL atau Cypher memiliki ekstensi temporal.
+Jenis query khas:
+\begin{itemize}
+    \item \textbf{Snapshot Query}: "Siapa presiden AS pada tahun 2010?"
+    \item \textbf{History Query}: "Tampilkan daftar semua pasangan hidup Elizabeth Taylor beserta durasinya."
+    \item \textbf{Temporal Interaction}: "Kejadian apa yang terjadi di Jakarta SELAMA masa jabatan gubernur X?"
+\end{itemize}
+Indeks khusus seperti T-RDF digunakan untuk mempercepat pengambilan data ini.
+
+\chapter{Multilayer Temporal Graphs}
+Sistem dunia nyata sering kali melibatkan berbagai jenis interaksi secara bersamaan. Multilayer networks (atau Multiplex) memodelkan lapisan hubungan yang berbeda (misal: pertemanan vs. profesional) antar set simpul yang sama. Menambahkan dimensi waktu menciptakan struktur data yang sangat kaya namun canggih.
+
+\section{Model dan Representasi}
+Graf Multilayer Temporal $\mathcal{M}$ didefinisikan sebagai urutan lapisan graf $G_t^{\alpha}$, di mana $\alpha$ adalah indeks lapisan dan $t$ adalah waktu.
+Sisi dapat berupa:
+\begin{itemize}
+    \item \textbf{Intra-layer}: $(u, v, t)$ pada lapisan $\alpha$.
+    \item \textbf{Inter-layer (Coupling)}: Hubungan antara simpul $u$ di lapisan $\alpha$ dengan simpul $u$ (dirinya sendiri) atau $v$ di lapisan $\beta$.
+\end{itemize}
+Tantangan utamanya adalah representasi tensor order-4 (source, target, layer, time) yang sangat jarang (\textit{sparse}).
+
+\section{Analysis Techniques}
+Metrik standar harus diperluas ke empat dimensi.
+\begin{itemize}
+    \item \textbf{Cross-Layer Spillover}: Menganalisis bagaimana aktivitas di lapisan A pada waktu $t$ memicu aktivitas di lapisan B pada waktu $t+\delta$. Contoh: Berita di Twitter (Layer A) memicu perdagangan saham di bursa (Layer B).
+    \item \textbf{Multilayer Temporal Motifs}: Mencari pola siklus yang melintasi berbagai lapisan.
+    \item \textbf{Versatility}: Sentralitas simpul yang tinggi tidak hanya pada satu lapisan atau satu waktu, tetapi konsisten di seluruh dimensi.
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+    \item \textbf{Sistem Transportasi Multimoda}: Layer 1 = Bus, Layer 2 = Kereta, Layer 3 = Jalan Kaki. Perjalanan optimal melibatkan perpindahan antar moda (inter-layer) dengan jadwal waktu yang ketat.
+    \item \textbf{Infrastruktur Kritis Interdependen}: Jaringan listrik (Power Grid) bergantung pada jaringan komunikasi (SCADA) untuk kontrol. Kegagalan di satu lapisan dapat merambat ke lapisan lain secara temporal (\textit{cascading failure}).
+\end{itemize}
+
+\chapter{Privacy dan Security}
+Data graf temporal mengandung informasi yang sangat sensitif. Pola waktu interaksi sering kali bertindak sebagai "sidik jari digital" yang membuat anonimisasi tradisional menjadi tidak efektif.
+
+\section{Privacy-Preserving Temporal Analytics}
+Teknik seperti **Differential Privacy (DP)** harus diadaptasi. Menambahkan *noise* pada graf temporal lebih sulit karena kita harus menjaga korelasi waktu.
+Dua pendekatan utama:
+\begin{itemize}
+    \item \textbf{Event-level DP}: Menyembunyikan keberadaan satu interaksi spesifik $(u, v, t)$.
+    \item \textbf{User-level DP}: Menyembunyikan seluruh riwayat interaksi seorang pengguna. Model ini memberikan jaminan privasi lebih kuat namun mengorbankan utilitas data lebih besar.
+\end{itemize}
+
+\section{De-anonymization Risks}
+Teori "Uniqueness of Human Behavior" menyatakan bahwa hanya dengan 4 titik data spatio-temporal (lokasi + waktu), 95\% individu dapat diidentifikasi secara unik.
+Dalam graf sosial, serangan struktural temporal dapat mengungkap identitas target. Jika penyerang mengetahui urutan waktu interaksi target dengan sedikit teman ("A menelepon B jam 9, lalu C jam 10"), pola subgraph temporal ini mungkin unik di seluruh jaringan.
+
+\section{Secure Computation}
+Untuk kolaborasi antar institusi (misalnya deteksi pencucian uang antar bank), data tidak boleh saling dipertukarkan secara mentah.
+Teknik **Secure Multi-Party Computation (SMPC)** atau **Federated Learning** pada graf temporal memungkinkan pelatihan model (seperti TGN) secara terdistribusi tanpa pernah mengungkapkan data transaksi nasabah individu. Gradien model dikirim, bukan data mentah.
+
+\chapter{Tools dan Frameworks}
+Implementasi analisis graf temporal tidak perlu dimulai dari nol. Berbagai pustaka dan basis data telah dikembangkan untuk mendukung penyimpanan dan pemrosesan data, meskipun dukungan natif untuk properti temporal bervariasi.
+
+\section{Graph Databases dengan Temporal Support}
+Basis data graf modern mulai mengintegrasikan waktu sebagai "warga kelas satu".
+\begin{itemize}
+    \item \textbf{Neo4j}: Meskipun dasarnya statis, fitur seperti \textit{Linked Lists} of events atau pemodelan properti waktu pada sisi memungkinkan traversal temporal. Library APOC menyediakan fungsi bantu untuk query berbasis waktu.
+    \item \textbf{TigerGraph}: Mendukung atribut akumulatif pada simpul dan sisi serta bahasa query GSQL yang turing-complete, memungkinkan penulisan algoritma temporal kompleks (seperti path finding dengan kendala waktu) langsung di dalam database.
+\end{itemize}
+
+\section{Analytics Libraries}
+Pustaka pemrograman untuk analisis dan riset.
+\begin{itemize}
+    \item \textbf{NetworkX}: Standar *de facto* di Python. Memiliki keterbatasan performa untuk graf besar, tetapi sangat fleksibel untuk prototipe. Modul standar tidak memiliki kelas temporal khusus, sehingga pengguna sering menggunakan list of graphs.
+    \item \textbf{DyNetx}: Ekstensi langsung dari NetworkX yang menambahkan kelas `TemporalGraph`. Memudahkan penambahan interaksi $(u, v, t)$ dan perhitungan jalur temporal sederhana.
+    \item \textbf{Stanford Network Analysis Platform (SNAP)}: Ditulis dalam C++ dengan wrapper Python. Sangat cepat dan efisien memori, cocok untuk dataset skala besar (jutaan simpul). Mendukung struktur `TNEANet` untuk jaringan temporal/multimoda.
+    \item \textbf{Pytorch Geometric Temporal}: Fokus pada *Deep Learning* (GNN temporal).
+\end{itemize}
+
+\section{Visualization Tools}
+\begin{itemize}
+    \item \textbf{Gephi}: Dengan plugin `GiveMeSomeCredit` atau fitur Timeline bawaan, Gephi sangat kuat untuk memutar animasi evolusi jaringan secara interaktif.
+    \item \textbf{Cytoscape}: Lebih fokus pada biologi, memiliki plugin seperti `CyTime` untuk visualisasi jalur signaling dinamis.
+\end{itemize}
+
+\part{Studi Kasus dan Implementasi}
+
+\chapter{Studi Kasus: Social Media Analytics}
+Bab ini mendemonstrasikan penerapan analisis graf temporal secara *end-to-end* untuk menganalisis penyebaran informasi di media sosial, dari data mentah hingga wawasan.
+
+\section{Problem Definition}
+Tujuannya adalah menganalisis dinamika viralitas sebuah tagar (\textit{hashtag}) selama 24 jam. Pertanyaan kuncinya:
+\begin{enumerate}
+    \item Siapa inisiator awal vs. amplifier utama?
+    \item Apakah penyebaran terjadi melalui satu komunitas besar atau menyebar lintas komunitas (\textit{viral crossover})?
+    \item Kapan titik jenuh (\textit{saturation point}) tercapai?
+\end{enumerate}
+
+\section{Data Collection dan Preprocessing}
+Data dikumpulkan menggunakan API publik (misal: Twitter/X API).
+\begin{itemize}
+    \item \textbf{Mentah}: JSON tweet mengandung `user_id`, `timestamp`, `mentions`, `retweeted_status`.
+    \item \textbf{Konstruksi Graf}: Simpul = User. Sisi berarah $(u, v, t)$ terbentuk jika $u$ me-retweet $v$ pada waktu $t$.
+    \item \textbf{Filtering}: Menghapus bot (berdasarkan aktivitas > 100 tweet/jam) dan *self-loops*.
+\end{itemize}
+
+\section{Analysis Methodology}
+Kita menerapkan tiga teknik utama:
+1.  \textbf{Temporal PageRank}: Untuk memberi peringkat pengaruh pengguna yang menghargai kebaruan.
+2.  \textbf{Dynamic Community Detection}: Menggunakan algoritma Louvain pada snapshot per jam untuk melihat penggabungan kelompok opini.
+3.  \textbf{Cascade Analysis}: Mengidentifikasi ukuran dan kedalaman pohon difusi terbesar.
+
+\section{Results dan Insights}
+Analisis mengungkapkan bahwa akun dengan jumlah pengikut terbesar BUKAN inisiator.
+- \textit{Fase 1 (0-4 jam)}: Akun kecil (inisiator) memulai diskusi di komunitas niche.
+- \textit{Fase 2 (4-12 jam)}: "Jembatan" (akun dengan konektivitas lintas komunitas) menyebarkan konten ke massa yang lebih luas. Terjadi lonjakan metrik *Temporal Betweenness*.
+- \textit{Fase 3 (>12 jam)}: Akun selebriti (amplifier) masuk, *degree centrality* meledak, namun struktur komunitas mulai kabur menjadi satu komponen raksasa.
+
+\section{Implementation Code}
+Contoh penggunaan Python dan `networkx`:
+\begin{verbatim}
+import networkx as nx
+
+# Create a graph
+G = nx.MultiDiGraph()
+
+# Add temporal edges: (u, v, key=timestamp)
+for row in dataset:
+    G.add_edge(row['source'], row['target'], 
+               time=row['timestamp'])
+
+# Filter edges by time window
+t_start, t_end = 1620000000, 1620003600 # 1 hour window
+sub_edges = [(u, v) for u, v, d in G.edges(data=True) 
+             if t_start <= d['time'] < t_end]
+             
+snapshot = G.edge_subgraph(sub_edges)
+print("Density at t1:", nx.density(snapshot))
+\end{verbatim}
+
+\chapter{Studi Kasus: Traffic Network Optimization}
+Studi kasus ini berfokus pada optimasi rute pengiriman logistik di kota metropolitan yang mengalami kemacetan parah pada jam-jam tertentu. Solusi statis (jarak terpendek) tidak lagi memadai.
+
+\section{Problem Definition}
+Diberikan peta jalan kota $G=(V, E)$ dan data historis kecepatan rata-rata di setiap segmen jalan untuk setiap interval 15 menit.
+Tujuannya adalah menemukan **Waktu Keberangkatan Optimal** dan **Rute Tercepat** untuk armada pengiriman yang harus mengunjungi serangkaian titik $D = \{d_1, d_2, \dots, d_k\}$.
+Kendala utama: Kecepatan perjalanan di sisi $(u, v)$ adalah fungsi waktu $v(t)$, bukan konstanta.
+
+\section{Temporal Model Construction}
+Kita menggunakan pendekatan **Time-Dependent Graph**.
+\begin{itemize}
+    \item \textbf{Data Ingestion}: Mengubah data GPS mentah menjadi fungsi bobot sisi diskrit. $W(u, v, t) = \text{panjang}(u, v) / \text{kecepatan}(u, v, t)$.
+    \item \textbf{Interpolasi Linear}: Karena data hanya tersedia per 15 menit, kecepatan di antara interval diinterpolasi secara linear untuk menghindari lonjakan tajam (\textit{smooth transition}).
+    \item \textbf{FIFO Consistency Check}: Memastikan data tidak melanggar prinsip kausalitas (kendaraan yang masuk belakangan tidak boleh menyalip kendaraan yang masuk duluan di segmen jalan satu jalur yang sama).
+\end{itemize}
+
+\section{Algorithm Implementation}
+Implementasi algoritma **Time-Dependent Dijkstra (TDD)**:
+\begin{verbatim}
+def time_dependent_dijkstra(graph, start_node, start_time):
+    # Priority Queue: (current_arrival_time, current_node)
+    pq = [(start_time, start_node)]
+    arrival_times = {node: float('inf') for node in graph.nodes}
+    arrival_times[start_node] = start_time
+    
+    while pq:
+        curr_time, u = heapq.heappop(pq)
+        
+        if curr_time > arrival_times[u]: continue
+            
+        for v in graph.neighbors(u):
+            # Calculate travel time based on arrival at u
+            travel_time = graph.get_travel_time(u, v, curr_time)
+            new_arrival = curr_time + travel_time
+            
+            if new_arrival < arrival_times[v]:
+                arrival_times[v] = new_arrival
+                heapq.heappush(pq, (new_arrival, v))
+                
+    return arrival_times
+\end{verbatim}
+
+\section{Evaluation}
+Model dievaluasi dengan membandingkannya terhadap dua baseline:
+1.  \textbf{Static Shortest Path}: Menggunakan jarak fisik saja.
+2.  \textbf{Average Speed Path}: Menggunakan kecepatan rata-rata harian (mengabaikan fluktuasi jam sibuk).
+Hasil menunjukkan bahwa TDD mengurangi waktu tempuh total sebesar 25\% pada jam sibuk pagi hari, meskipun rute yang dipilih secara fisik 10\% lebih jauh (memutar menghindari pusat kemacetan).
+
+\chapter{Studi Kasus: Epidemic Modeling}
+Studi kasus terakhir ini mengeksplorasi penggunaan graf temporal untuk memodelkan penyebaran penyakit menular. Berbeda dengan model matematika klasik yang mengasumsikan populasi homogen, model graf menangkap struktur kontak yang rinci dan heterogen.
+
+\section{Contact Network Modeling}
+Kita menggunakan dataset publik dari **SocioPatterns**, yang merekam interaksi tatap muka jarak dekat antar peserta konferensi menggunakan sensor RFID setiap 20 detik.
+\begin{itemize}
+    \item \textbf{Nodes}: Individu peserta konferensi.
+    \item \textbf{Edges}: Kontak fisik durasi $>20$ detik.
+    \item \textbf{Temporal Resolution}: Data dikumpulkan per 20 detik, namun untuk simulasi kita mungkin mengagregasi per 5 menit untuk stabilitas.
+\end{itemize}
+
+\section{Temporal Spreading Simulation}
+Simulasi menggunakan model **SIR (Susceptible-Infected-Recovered)** stokastik di atas graf temporal.
+Pada setiap langkah waktu $t$, untuk setiap sisi aktif $(u, v)$ di mana $u$ terinfeksi (I) dan $v$ rentan (S):
+\begin{enumerate}
+    \item Transmisi terjadi dengan probabilitas $\beta$. Jika sukses, $v$ berubah status menjadi $I$ pada $t+1$.
+    \item Individu terinfeksi $u$ sembuh menjadi $R$ dengan probabilitas $\gamma$ secara independen.
+\end{enumerate}
+Hasil simulasi menunjukkan bahwa wabah menyebar jauh lebih lambat daripada prediksi graf statis karena adanya jeda waktu antar kontak di dunia nyata.
+
+\section{Intervention Strategies}
+Tantangan utama adalah menghentikan wabah dengan memutus mata rantai penularan (\textit{network immunization}) dengan sumber daya terbatas (misal: vaksin terbatas).
+Kita membandingkan tiga strategi:
+1.  \textbf{Random Immunization}: Memilih $k$ orang secara acak. (Hasil: Tidak efektif).
+2.  \textbf{Static Hub Immunization}: Memilih $k$ orang dengan derajat statis tertinggi (orang populer). (Hasil: Sangat efektif, tapi membutuhkan pengetahuan global tentang graf).
+3.  \textbf{Recent Contact Immunization (Temporal)}: Mengimunisasi "kenalan" dari orang yang dipilih secara acak (Strategi "Acquaintance"). Dalam graf temporal, ini berarti memilih orang yang *baru saja* berinteraksi. (Hasil: Hampir seefektif target hub, tapi jauh lebih mudah diterapkan tanpa peta global).
+
+\chapter{Studi Kasus: Cryptocurrency Portfolio Optimization}
+Studi kasus ini mendemonstrasikan aplikasi graf temporal di bidang keuangan, khususnya untuk manajemen portofolio aset kripto yang sangat volatil. Kita akan menggunakan analisis korelasi dinamis untuk memitigasi risiko.
+
+\section{Problem Definition}
+Tujuannya adalah membangun portofolio yang tangguh (\textit{robust}) terhadap guncangan pasar.
+Teori Portofolio Modern (Markowitz) menyarankan diversifikasi. Namun, dalam pasar kripto, korelasi antar aset sering kely "bergeser" mendekati 1 saat pasar jatuh (\textit{market crash}), membuat diversifikasi statis gagal.
+Tantangannya: Mendeteksi klaster aset yang bergerak bersamaan secara real-time dan memilih aset perwakilan yang paling tidak berkorelasi.
+
+\section{Temporal Correlation Graph Construction}
+Kita menggunakan data harga penutupan per jam dari 50 aset kripto teratas.
+\begin{itemize}
+    \item \textbf{Nodes}: Aset kripto (BTC, ETH, SOL, dll).
+    \item \textbf{Sliding Window Correlation}: Pada setiap jam $t$, kita menghitung matriks korelasi Pearson (atau Dynamic Time Warping) berdasarkan harga $24$ jam terakhir.
+    \item \textbf{Thresholding}: Sisi $(u, v)$ terbentuk jika korelasi $\rho_{uv}(t) > 0.7$. Ini menghasilkan serangkaian snapshot graf $G_1, G_2, \dots$.
+\end{itemize}
+
+\section{Strategy Implementation}
+Strategi investasi berbasis graf temporal (\textit{Graph-Based Asset Selection}):
+1.  \textbf{Centrality Analysis}: Hitung \textit{Eigenvector Centrality} untuk setiap aset pada $G_t$. Aset dengan sentralitas tinggi adalah "penggerak pasar" atau aset yang sangat terpengaruh oleh tren global.
+2.  \textbf{Independent Set Selection}: Temukan \textit{Maximum Independent Set} (atau pendekatan heuristiknya) pada graf $G_t$. Himpunan ini berisi aset-aset yang saat ini tidak berkorelasi satu sama lain.
+3.  \textbf{Rebalancing}: Alokasikan modal hanya pada aset-aset di dalam Independent Set. Ulangi proses ini setiap jam atau setiap hari.
+
+\section{Backtesting Results}
+Strategi ini diuji pada data pasar "Bear Market" 2022.
+Hasil menunjukan bahwa portofolio berbasis graf temporal memiliki \textbf{Drawdown Maksimum} yang jauh lebih rendah (-30\%) dibandingkan strategi *Buy-and-Hold* Bitcoin (-70\%) atau Equal Weight (-65%). Hal ini karena saat korelasi pasar meningkat (tanda bahaya), graf menjadi sangat padat, sehingga ukuran \textit{Independent Set} mengecil, yang secara otomatis memaksa portofolio untuk memegang lebih banyak uang tunai (jika kas dianggap node terisolasi) atau berkonsentrasi pada sedikit aset yang benar-benar unik.
+
+\appendix
+
+\appendix
+\chapter{Notasi Matematis}
+Berikut adalah daftar simbol yang umum digunakan dalam buku ini:
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|l|}
+\hline
+\textbf{Simbol} & \textbf{Deskripsi} \\
+\hline
+$G = (V, E)$ & Graf Statis dengan himpunan simpul $V$ dan sisi $E$ \\
+$\mathcal{G}$ & Graf Temporal \\
+$V$ & Himpunan semua simpul dalam jaringan \\
+$\mathcal{E}_T$ & Himpunan sisi temporal $(u, v, t)$ \\
+$T$ & Rentang waktu total observasi $[t_{min}, t_{max}]$ \\
+$G_t$ & Snapshot graf pada waktu diskrit $t$ \\
+$\delta$ & Resolusi waktu atau durasi langkah waktu \\
+$N(u)$ & Tetangga dari simpul $u$ \\
+$d(u, v)$ & Jarak jalur terpendek antara $u$ dan $v$ \\
+$\tau(path)$ & Durasi temporal dari sebuah jalur \\
+\hline
+\end{tabular}
+\end{table}
+
+\chapter{Complexity Analysis}
+Analisis kompleksitas pada graf temporal sering kali melibatkan faktor $T$ (waktu) disamping $|V|$ dan $|E|$.
+\section*{Space Complexity}
+\begin{itemize}
+    \item \textbf{Snapshot Model}: $O(T \cdot (|V| + |E_{avg}|))$. Sangat boros jika graf jarang berubah.
+    \item \textbf{Edge Stream}: $O(|E_{total}|)$. Paling efisien untuk graf jarang (\textit{sparse}) yang dinamis.
+\end{itemize}
+
+\section*{Time Complexity (Shortest Path)}
+\begin{itemize}
+    \item \textbf{Static Dijkstra}: $O(|E| + |V|\log|V|)$.
+    \item \textbf{Temporal Dijkstra}: $O(|E_T| \log |E_T|)$ atau $O(|E_T| + |V|\log|V|)$ dengan struktur data yang tepat. Perhatikan bahwa $|E_T|$ bisa jauh lebih besar daripada $|E|$ statis karena sisi yang sama muncul berulang kali pada waktu berbeda.
+\end{itemize}
+
+\chapter{Datasets Repository}
+Referensi dataset publik untuk eksperimen dan benchmarking:
+\begin{enumerate}
+    \item \textbf{SNAP (Stanford Network Analysis Project)}: Koleksi besar dataset temporal termasuk:
+    \begin{itemize}
+        \item \textit{Bitcoin-Alpha/OTC}: Jaringan kepercayaan (trust) dengan timestamp.
+        \item \textit{Reddit Hyperlinks}: Tautan antar subreddit.
+        \item \textit{Email-Eu-Core}: Jaringan email institusi riset.
+    \end{itemize}
+    \item \textbf{KONECT}: The Koblenz Network Collection.
+    \item \textbf{SocioPatterns}: Data kontak fisik resolusi tinggi (RFID) dari sekolah, kantor, rumah sakit, dan konferensi.
+    \item \textbf{PEMS-BAY / METR-LA}: Dataset lalu lintas standar untuk prediksi Spatio-Temporal GNN.
+\end{enumerate}
+
+\chapter{Code Examples}
+\section*{Memuat Temporal Edge List (Python)}
+\begin{verbatim}
+import pandas as pd
+
+# 1. Load Data
+# Format CSV: source, target, timestamp, weight
+df = pd.read_csv('temporal_data.csv')
+
+# 2. Sort by Time (Critical for streaming algos!)
+df = df.sort_values('timestamp')
+
+# 3. Iterate as stream
+for index, row in df.iterrows():
+    u, v, t = row['source'], row['target'], row['timestamp']
+    # Process edge (u, v) at time t
+    # update_metrics(u, v, t)
+\end{verbatim}
+
+\section*{Konversi ke Snapshots}
+\begin{verbatim}
+time_window = 3600 # 1 hour
+snapshots = []
+
+# Group by time window
+for window_start, group in df.groupby(
+        df['timestamp'] // time_window):
+    
+    G_t = nx.from_pandas_edgelist(
+        group, 'source', 'target', create_using=nx.Graph)
+    snapshots.append(G_t)
+\end{verbatim}
+
+\backmatter
+
+%\bibliographystyle{plain}
+%\bibliography{references}
+
+%\printindex
+
+\end{document}

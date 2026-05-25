@@ -1,0 +1,103 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[bahasa]{babel} % Menggunakan Bahasa Indonesia
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+
+% Pengaturan Margin
+\geometry{
+    top=3cm,
+    bottom=3cm,
+    left=3cm,
+    right=3cm
+}
+
+% Informasi Dokumen
+\title{\textbf{Dokumentasi Kode Sumber dan Implementasi Sistem}}
+\author{Lampiran Tesis - Temporal Graph Analytics}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Pengantar}
+\label{sec:pengantar}
+
+Dokumen ini berisi dokumentasi dan deskripsi fungsional dari seluruh artefak kode sumber (\textit{source code}) yang dikembangkan dalam penelitian tesis berjudul \textbf{"Temporal Graph Analytics for Cryptocurrency Portfolio Optimization"}.
+
+Seluruh implementasi dilakukan menggunakan bahasa pemrograman Python 3.13 dalam lingkungan pengembangan Jupyter Notebook. Pendekatan ini dipilih untuk mendukung reprodusibilitas (\textit{reproducibility}) dan visualisasi data yang interaktif. Struktur kode dikategorikan menjadi modul utama, modul eksperimen lanjutan, dan eksperimen pendahulu.
+
+\section{Modul Utama dan Perbandingan (Core Strategy)}
+Bagian ini berisi kode inti yang digunakan untuk menghasilkan hasil akhir tesis, mencakup implementasi strategi \textit{Temporal Graph-Enhanced} dan perbandingannya dengan strategi \textit{Baseline}.
+
+\begin{itemize}
+    \item \textbf{\texttt{comparison\_baseline\_vs\_temporal\_graph\_fixed.ipynb}} \\
+    \textit{(Final Product)} Notebook ini adalah \textbf{artefak utama} penelitian. Notebook ini mengintegrasikan seluruh komponen sistem:
+    \begin{itemize}[label=$\circ$]
+        \item Konstruksi \textit{Temporal Graph} dari data historis harga cryptocurrency.
+        \item Ekstraksi fitur jaringan (\textit{Degree Centrality, Betweenness Centrality, Density}).
+        \item Pelatihan model \textit{Machine Learning} (Random Forest) untuk deteksi rezim pasar.
+        \item Simulasi \textit{backtesting} strategi Baseline vs Temporal Graph.
+        \item Perhitungan metrik kinerja (Sharpe Ratio, Max Drawdown, Return) dan uji signifikansi.
+    \end{itemize}
+    
+    \item \textbf{\texttt{temporal\_graph\_markowitz.ipynb}} \\
+    Modul pengembangan ini berfokus pada validasi algoritma pembentukan graf dinamis. Digunakan untuk melakukan \textit{tuning} parameter ambang batas (\textit{threshold}) korelasi dan jendela waktu (\textit{window size}) sebelum diintegrasikan ke modul utama.
+    
+    \item \textbf{\texttt{ai\_gated\_markowitz\_complete.ipynb}} \\
+    Implementasi mandiri dari strategi \textit{Baseline} (AI-Gated Markowitz Klasik). Berfungsi sebagai kontrol eksperimen untuk memastikan performa baseline terukur secara objektif tanpa bias dari modul graph.
+\end{itemize}
+
+\section{Eksperimen Pembanding Lanjutan (GNN)}
+Eksperimen tambahan menggunakan \textit{Graph Neural Networks} (GNN) dilakukan untuk memvalidasi efektivitas pendekatan \textit{end-to-end deep learning} dibandingkan pendekatan \textit{feature extraction} manual yang diusulkan.
+
+\begin{itemize}
+    \item \textbf{\texttt{gnn\_enhanced\_comparison.ipynb}} \\
+    Implementasi model \textit{Graph Convolutional Networks} (GCN) dan \textit{Graph Attention Networks} (GAT). Bertujuan membandingkan akurasi prediksi rezim pasar antara GNN dan Random Forest berbasis fitur graf.
+    
+    \item \textbf{\texttt{gnn\_simplified.ipynb}} \\
+    Versi ringan dari implementasi GNN tanpa dependensi pustaka C++ yang kompleks, dikembangkan untuk validasi konsep cepat dan portabilitas kode.
+\end{itemize}
+
+\section{Eksperimen Pendahulu (Reinforcement Learning)}
+Sebelum fokus pada pendekatan \textit{Temporal Graph}, penelitian mengeksplorasi metode \textit{Deep Reinforcement Learning} (DRL).
+
+\begin{itemize}
+    \item \textbf{\texttt{rl\_portfolio\_ultimate.ipynb}}: Implementasi agen PPO (\textit{Proximal Policy Optimization}) untuk manajemen portofolio. Disimpan sebagai dokumentasi \textit{negative results} atau metode pembanding awal.
+\end{itemize}
+
+\section{Ringkasan Berkas}
+Daftar lengkap berkas kode sumber beserta deskripsi singkatnya disajikan dalam Tabel \ref{tab:daftar_notebook}.
+
+\begin{table}[ht]
+    \centering
+    \caption{Ringkasan Artefak Kode Sumber Eksperimen}
+    \label{tab:daftar_notebook}
+    \renewcommand{\arraystretch}{1.5} % Menambah jarak vertikal antar baris
+    \begin{tabular}{|p{6.5cm}|p{8.5cm}|}
+    \hline
+    \textbf{Nama Berkas Notebook} & \textbf{Deskripsi Fungsi Utama} \\ \hline
+    
+    \texttt{comparison\_baseline\_vs\newline\_temporal\_graph\_fixed.ipynb} & 
+    \textbf{(FINAL)} Analisis komparatif lengkap antara Baseline dan Temporal Graph-Enhanced Strategy beserta visualisasi hasil. \\ \hline
+    
+    \texttt{temporal\_graph\newline\_markowitz.ipynb} & 
+    Modul pengembangan algoritma konstruksi graf dinamis dan ekstraksi fitur sentralitas. \\ \hline
+    
+    \texttt{ai\_gated\_markowitz\newline\_complete.ipynb} & 
+    Kode sumber strategi Baseline (Random Forest + Markowitz standar). \\ \hline
+    
+    \texttt{gnn\_enhanced\newline\_comparison.ipynb} & 
+    Eksperimen pembanding menggunakan metode \textit{Graph Neural Networks} (GCN/GAT). \\ \hline
+    
+    \texttt{thesis\_experiment\newline\_final.ipynb} & 
+    Notebook konsolidasi untuk agregasi data dan pelaporan metrik akhir. \\ \hline
+    \end{tabular}
+\end{table}
+
+\end{document}

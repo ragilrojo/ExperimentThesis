@@ -1,0 +1,79 @@
+﻿'def apply_rmt_filter(returns_window):\n    T, N = returns_window.shape\n    corr_mat = returns_window.corr().fillna(0).values\n    eigenvalues, eigenvectors = np.linalg.eigh(corr_mat)\n    Q = T / N\n    l'
+---
+def apply_rmt_filter(returns_window):
+    T, N = returns_window.shape
+    corr_mat = returns_window.corr().fillna(0).values
+    eigenvalues, eigenvectors = np.linalg.eigh(corr_mat)
+    Q = T / N
+    lambda_max = (1 + np.sqrt(1/Q))**2
+    eigenvalues[eigenvalues < lambda_max] = np.mean(eigenvalues[eigenvalues < lambda_max])
+    corr_denoised = eigenvectors @ np.diag(eigenvalues) @ eigenvectors.T
+    np.fill_diagonal(corr_denoised, 1)
+    return corr_denoised
+
+def get_centrality_weights(returns_window, gamma=1.0):
+    """
+    Computes Network-Regularized Markowitz weights.
+    Minimizes: w' * Sigma * w + gamma * (centrality' * w)
+    Subject to: sum(w) = 1, w >= 0
+    """
+    T, N = returns_window.shape
+    mu = returns_window.mean().values
+    sigma = returns_window.std().values
+    
+    # 1. Denoised Covariance Matrix (RMT)
+    corr_f = apply_rmt_filter(returns_window)
+    cov_f = np.outer(sigma, sigma) * corr_f
+    cov_f += np.eye(N) * 1e-8 # Numerical stability
+    
+    # 2. Centrality calculation
+    dist_mat = np.sqrt(np.maximum(0, 2 * (1 - corr_f)))
+    adj = np.maximum(0, 1 - dist_mat)
+    G = nx.from_numpy_array(adj)
+    try:
+        centrality = nx.eigenvector_centrality(G, max_iter=2000)
+        cent_vec = np.array([centrality[i] for i in range(N)])
+    except:
+        cent_vec = np.array(list(nx.degree_centrality(G).values()))
+
+    # 3. Optimization
+    # Objective: Risk + gamma * Centrality (treating high centrality as a 'cost' to diversify)
+    fun = lambda w: w.T @ cov_f @ w + gamma * np.sum(cent_vec * w)
+    
+    # Constraint 1: bobot harus sum=1
+    # Constraint 2: return portofolio >= rata-rata return (mencegah dominasi stablecoin)
+    cons = (
+        {'type': 'eq',   'fun': lambda w: np.sum(w) - 1},
+        {'type': 'ineq', 'fun': lambda w: np.dot(w, mu) - np.mean(mu)},
+    )
+    # Terapkan batas bobot maksimal 0.1 (10%) sesuai Giudici et al. (2020)
+    bnds = tuple((0, 0.1) for _ in range(N))
+    x0 = np.ones(N) / N
+    
+    res = minimize(fun, x0, method='SLSQP', bounds=bnds, constraints=cons)
+    
+    if not res.success:
+        return np.ones(N) / N
+        
+    return res.x
+
+class PortfolioStrategy:
+    def __init__(self, name): 
+        self.name = name
+        self.last_gamma = 1.0
+    def compute_weights(self, returns_window): raise NotImplementedError()
+    
+class EquallyWeighted(PortfolioStrategy):
+    def compute_weights(self, returns_window): return np.ones(returns_window.shape[1])/returns_window.shape[1]
+class ClassicalMarkowitz(PortfolioStrategy):
+    def compute_weights(self, returns_window):
+        cov = returns_window.cov().values
+        inv_cov = np.linalg.pinv(cov)
+        w = np.clip(inv_cov @ np.ones(cov.shape[0]), 0, 1)
+        return w / np.sum(w)
+class NetworkMarkowitz(PortfolioStrategy):
+    def __init__(self, name, gamma=1.0):
+        super().__init__(name)
+        self.gamma = gamma
+    def compute_weights(self, returns_window): return get_centrality_weights(returns_window, self.gamma)
+

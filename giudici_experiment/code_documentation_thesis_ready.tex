@@ -1,0 +1,257 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{graphicx}
+
+\geometry{margin=1in}
+
+% ── Python Listing Style ──────────────────────────────────────────────────────
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{codeorange}{rgb}{0.8,0.4,0}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codeorange},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    morekeywords={self, True, False, None, nn, F, torch, np, pd}
+}
+\lstset{style=pythonstyle}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\title{\textbf{Dokumentasi Kode Komprehensif} \\ \large Perbandingan Strategi Portofolio: Klasik, Network, dan GNN \\
+\small \texttt{strategy\_comparison\_gnn\_thesis\_ready.ipynb}}
+\author{Dokumentasi Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{Pendahuluan}
+%=============================================================================
+Dokumen ini menyajikan seluruh alur kerja eksperimen untuk tesis yang membandingkan berbagai paradigma alokasi portofolio pada aset kripto (2017--2019). Fokus utama adalah mengevaluasi keunggulan \textbf{GNN-based Graph Diversification} dibandingkan dengan:
+\begin{itemize}
+    \item \textbf{Klasik}: Equally Weighted (EW) dan Markowitz (Mean-Variance).
+    \item \textbf{Regularisasi}: Graphical Lasso (Glasso) Markowitz.
+    \item \textbf{Network-Based}: Network Markowitz (menggunakan Eigenvector Centrality).
+    \item \textbf{Graph Diversification}: Metode Maximum Independent Set (MIS) dengan threshold tetap.
+\end{itemize}
+
+Model \textbf{CorrelationGNN} digunakan untuk memprediksi matriks korelasi yang lebih dinamis melalui pembelajaran \textit{node embeddings} dari fitur statistik aset.
+
+%=============================================================================
+\section{Bagian 1 -- Persiapan Lingkungan dan Data}
+%=============================================================================
+
+\subsection{Import Libraries}
+Mengintegrasikan PyTorch Geometric untuk pengolahan graf dan Scikit-learn untuk optimasi matriks kovarians.
+\begin{lstlisting}[caption={Import pustaka yang diperlukan}]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import networkx as nx
+from scipy.optimize import minimize
+from scipy.linalg import eigh
+from sklearn.covariance import GraphicalLassoCV
+from scipy import stats
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
+from torch_geometric.data import Data
+import warnings
+warnings.filterwarnings('ignore')
+plt.style.use('seaborn-v0_8-darkgrid')
+\end{lstlisting}
+
+\subsection{Load dan Segmentasi Data Real Crypto}
+Data return harian dari 9 aset kripto utama dibersihkan dan dibagi menjadi tiga fase pasar utama untuk analisis performa yang robust.
+\begin{lstlisting}[caption={Preparasi dataset dan sub-periode}]
+EXCEL_FILE = 'crypto_data_real.xlsx'
+df_raw = pd.read_excel(EXCEL_FILE, sheet_name='Returns', index_col=0)
+df_raw.index = pd.to_datetime(df_raw.index)
+df_raw.sort_index(inplace=True)
+df_raw = df_raw.drop(columns=['USDT'], errors='ignore')
+
+# Sinkronisasi data aset (only non-zero returns)
+mask = (df_raw != 0).all(axis=1)
+df_returns = df_raw[mask].copy()
+
+# Definisi Periode Pasar
+BULL_END  = '2017-12-31'
+BEAR_END  = '2018-12-31'
+
+periods = {
+    'Bull (Nov-Dec 2017)' : df_returns.loc[df_returns.index <= BULL_END],
+    'Bear (2018)'         : df_returns.loc[(df_returns.index > BULL_END) & (df_returns.index <= BEAR_END)],
+    'Recovery (2019)'     : df_returns.loc[df_returns.index > BEAR_END],
+    'Full Period'         : df_returns,
+}
+\end{lstlisting}
+
+%=============================================================================
+\section{Bagian 2 -- Fungsi Pembantu dan Metrik Risiko}
+%=============================================================================
+Implementasi filter \textit{Random Matrix Theory} (RMT) untuk membersihkan noise pada matriks korelasi, serta metrik evaluasi seperti \textit{Calmar Ratio} dan \textit{Rachev Ratio}.
+
+\begin{lstlisting}[caption={Utility functions dan risk analytics}]
+def apply_rmt_filter(returns_data):
+    T, N = returns_data.shape
+    Q = T / N
+    C = np.corrcoef(returns_data.T)
+    eigenvalues, eigenvectors = eigh(C)
+    eigenvalues = eigenvalues[::-1]; eigenvectors = eigenvectors[:, ::-1]
+    lambda_plus = 1 + (1/Q) + 2*np.sqrt(1/Q)
+    # Filter eigen yang berada di bawah Marchenko-Pastur threshold
+    Lambda_f = np.diag(np.where(eigenvalues > lambda_plus, eigenvalues, 0))
+    return eigenvectors @ Lambda_f @ eigenvectors.T
+
+def calculate_max_drawdown(cumulative_returns):
+    running_max = np.maximum.accumulate(cumulative_returns)
+    drawdown = (cumulative_returns - running_max) / (running_max + 1e-12)
+    return drawdown.min()
+
+def calculate_calmar_ratio(returns, cum_returns):
+    ann_ret = np.mean(returns) * 252
+    mdd = abs(calculate_max_drawdown(cum_returns))
+    return ann_ret / mdd if mdd > 0 else 0
+\end{lstlisting}
+
+%=============================================================================
+\section{Bagian 3 -- Arsitektur CorrelationGNN}
+%=============================================================================
+Menggunakan \textit{Graph Convolutional Network} (GCN) untuk mengekstrak fitur relasional antar aset.
+
+\begin{lstlisting}[caption={GNN Model dan fungsi latih}]
+class CorrelationGNN(nn.Module):
+    def __init__(self, input_dim=4, hidden_dim=16, output_dim=8):
+        super().__init__()
+        self.conv1 = GCNConv(input_dim, hidden_dim)
+        self.conv2 = GCNConv(hidden_dim, output_dim)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.conv2(x, edge_index))
+        return x
+
+    def predict_correlation(self, emb):
+        n = emb.shape[0]
+        C = torch.zeros(n, n)
+        for i in range(n):
+            for j in range(i+1, n):
+                s = F.cosine_similarity(emb[i].unsqueeze(0), emb[j].unsqueeze(0))
+                C[i, j] = C[j, i] = s
+        for i in range(n): C[i,i] = 1.0
+        return C
+
+def train_gnn(model, data, epochs=50):
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    criterion = nn.MSELoss()
+    model.train()
+    for _ in range(epochs):
+        optimizer.zero_grad()
+        emb = model(data.x, data.edge_index)
+        loss = criterion(model.predict_correlation(emb), data.y)
+        loss.backward(); optimizer.step()
+    return model
+\end{lstlisting}
+
+%=============================================================================
+\section{Bagian 4 -- Implementasi Strategi Portofolio}
+%=============================================================================
+Seluruh strategi diturunkan dari kelas \texttt{PortfolioStrategy} untuk kemudahan backtesting.
+
+\begin{lstlisting}[caption={Framework Strategi}]
+class PortfolioStrategy:
+    def __init__(self, name): self.name = name
+    def get_weights(self, r): raise NotImplementedError
+
+# Contoh Strategi Utama (GNN Graph Diversification)
+class GNNGraphDiversification(PortfolioStrategy):
+    def __init__(self, name='GNN GD', train_epochs=30):
+        super().__init__(name)
+        self.train_epochs = train_epochs
+        self.gnn_model = CorrelationGNN()
+
+    def get_weights(self, r):
+        n = r.shape[1]; assets = r.columns.tolist()
+        data = create_graph_data(r)
+        train_gnn(self.gnn_model, data, epochs=self.train_epochs)
+        
+        self.gnn_model.eval()
+        with torch.no_grad():
+            emb = self.gnn_model(data.x, data.edge_index)
+            pc = self.gnn_model.predict_correlation(emb).numpy()
+
+        # Deteksi korelasi signifikan berbasis GNN
+        up = pc[np.triu_indices(n, k=1)]
+        thr = np.clip(np.mean(np.abs(up)) + 0.5*np.std(np.abs(up)), 0.3, 0.7)
+        
+        G = nx.Graph()
+        for i, a1 in enumerate(assets):
+            for j, a2 in enumerate(assets):
+                if i < j and abs(pc[i, j]) > thr: G.add_edge(a1, a2)
+        
+        sel = list(nx.approximation.maximum_independent_set(G))
+        w = np.zeros(n)
+        if sel:
+            for a in sel: w[assets.index(a)] = 1.0 / len(sel)
+        else:
+            w = np.ones(n) / n
+        return w
+\end{lstlisting}
+
+%=============================================================================
+\section{Bagian 5 -- Backtesting dan Hasil}
+%=============================================================================
+
+\subsection{Simulasi Berjalan (Rolling Window)}
+Backtest dilakukan dengan jendela geser 120 hari dan rebalancing setiap 7 hari, dengan biaya transaksi 0.1\%.
+
+\subsection{Analisis Metrik Performa}
+Tabel metrik mencakup imbal hasil kumulatif, volatilitas tahunan, Sharpe ratio, dan Calmar ratio yang menonjolkan aspek ketahanan terhadap drawdown.
+
+\subsection{Validasi Statistik (Diebold-Mariano Heatmap)}
+Signifikansi statistik dari perbedaan performa antar strategi divalidasi dengan DM Test. Jika $p < 0.05$, maka strategi pada baris memiliki akurasi prediksi (return) yang berbeda secara signifikan dibanding strategi pada kolom.
+
+\begin{lstlisting}[caption={Visualisasi Heatmap Statistik}]
+# Plotting Heatmap
+fig, ax = plt.subplots(figsize=(11, 8))
+sns.heatmap(dm_stat_df, annot=True, center=0, cmap='RdYlGn', ax=ax)
+plt.title('DM Test Statistic (Row vs Column)')
+plt.show()
+\end{lstlisting}
+
+%=============================================================================
+\section{Kesimpulan}
+%=============================================================================
+Dokumentasi ini merangkum seluruh implementasi teknis untuk eksperimen tesis. Penggunaan GNN memungkinkan pembentukan graf korelasi yang adaptif, yang kemudian dimanfaatkan oleh algoritma keterserakan graf (Graph Diversification) untuk memitigasi risiko sistemik pada pasar kripto yang volatil.
+
+\end{document}

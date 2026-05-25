@@ -1,0 +1,94 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+
+\geometry{margin=1in}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{orange},
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+\title{Dokumentasi Eksperimen: Perbandingan Strategi Portofolio Berbasis Graph dan GNN}
+\author{Catatan Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Pendahuluan}
+Dokumentasi ini merangkum eksperimen yang dilakukan dalam notebook \texttt{strategy\_comparison\_gnn\_thesis\_ready.ipynb}. Eksperimen ini bertujuan untuk membandingkan performa berbagai strategi alokasi portofolio, mulai dari pendekatan klasik (Markowitz), pendekatan berbasis jaringan (\textit{Network Markowitz}), hingga inovasi baru menggunakan \textit{Graph Diversification} yang diperkuat dengan \textit{Graph Neural Networks} (GNN).
+
+\section{Dataset dan Periode Pengamatan}
+Eksperimen menggunakan data return harian logaritmik dari 9 aset kripto utama yang bersumber dari Yahoo Finance, merujuk pada penelitian Giudici et al. (2020).
+
+\begin{itemize}
+    \item \textbf{Aset}: BTC, ETH, XRP, BCH, LTC, BNB, EOS, XLM, TRX.
+    \item \textbf{Rentang Waktu}: 10 November 2017 hingga 17 Oktober 2019 (706 hari perdagangan).
+    \item \textbf{Fase Pasar}:
+    \begin{itemize}
+        \item \textbf{Bull (2017)}: Nov 2017 -- Des 2017 (52 hari).
+        \item \textbf{Bear (2018)}: Jan 2018 -- Des 2018 (364 hari).
+        \item \textbf{Recovery (2019)}: Jan 2019 -- Okt 2019 (290 hari).
+    \end{itemize}
+\end{itemize}
+
+\section{Metodologi Strategi}
+Terdapat sembilan variasi strategi yang diuji:
+
+\begin{enumerate}
+    \item \textbf{Equally Weighted (EW)}: Bobot sama rata ($1/N$).
+    \item \textbf{Classical Markowitz}: Optimasi \textit{Mean-Variance} standar.
+    \item \textbf{Glasso Markowitz}: Markowitz dengan estimasi matriks kovarians menggunakan \textit{Graphical Lasso}.
+    \item \textbf{Network Markowitz}: Menggunakan \textit{Random Matrix Theory} (RMT) filter dan \textit{Minimum Spanning Tree} (MST) untuk menghitung sentralitas sebagai penalti risiko.
+    \item \textbf{Graph Diversification (GD)}: Strategi seleksi aset berdasarkan \textit{Maximum Independent Set} (MIS) pada graf korelasi dengan \textit{threshold} $\theta$.
+    \item \textbf{GNN Graph Diversification}: Menggunakan \textit{Graph Convolutional Network} (GCN) untuk mempelajari representasi (\textit{embeddings}) aset dan memprediksi korelasi yang lebih adaptif untuk proses seleksi MIS.
+\end{enumerate}
+
+\section{Hasil Performa (Full Period)}
+Berdasarkan hasil \textit{backtesting} (jendela observasi 120 hari, rebalancing setiap 7 hari), berikut adalah ringkasan metrik performa:
+
+\begin{table}[htbp]
+\centering
+\caption{Perbandingan Performa Strategi (Periode Penuh)}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Strategi} & \textbf{Ann. Return (\%)} & \textbf{Ann. Vol (\%)} & \textbf{Sharpe} & \textbf{Max DD (\%)} & \textbf{Calmar} \\
+\midrule
+Equally Weighted & -40.43 & 70.72 & -0.5717 & -87.80 & -0.4604 \\
+Classical Markowitz & -35.31 & 58.53 & -0.6033 & -76.57 & -0.4611 \\
+Glasso Markowitz & -35.31 & 58.53 & -0.6033 & -76.57 & -0.4611 \\
+Network Markowitz ($\gamma=0$) & -33.87 & 58.37 & -0.5803 & -77.77 & -0.4355 \\
+Network Markowitz ($\gamma=1$) & -27.19 & 73.29 & -0.3710 & -87.62 & -0.3103 \\
+Graph Divers. ($\theta=0.4$) & -52.06 & 86.34 & -0.6029 & -93.06 & -0.5594 \\
+Graph Divers. ($\theta=0.5$) & -34.84 & 85.53 & -0.4073 & -93.39 & -0.3731 \\
+GNN GD (30 ep) & -36.57 & 86.13 & -0.4246 & -93.11 & -0.3927 \\
+GNN GD (50 ep) & -43.77 & 70.42 & -0.6215 & -87.80 & -0.4985 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\section{Validasi Statistik}
+Eksperimen menyertakan uji \textbf{Diebold-Mariano (DM)} untuk menguji signifikansi perbedaan antara strategi. Secara umum, pada pasar kripto yang sangat volatil, perbedaan antara strategi seringkali tidak signifikan secara statistik ($p > 0.05$), yang menunjukkan bahwa tidak ada satu pun strategi yang secara dominan mengalahkan strategi lainnya secara konsisten dalam periode yang diuji.
+
+\section{Kesimpulan}
+Strategi berbasis graph (\textit{GD} dan \textit{GNN-GD}) menunjukkan volatilitas yang lebih tinggi namun memiliki potensi dalam penyeleksian aset independen. \textit{Network Markowitz} dengan sentralitas ($\gamma=1$) memberikan perbaikan pada \textit{Sharpe Ratio} dibandingkan Markowitz klasik pada periode penuh, meskipun \textit{drawdown} tetap menjadi tantangan utama di pasar kripto tahun 2018.
+
+\end{document}

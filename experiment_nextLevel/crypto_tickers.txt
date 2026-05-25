@@ -1,0 +1,38 @@
+
+# 1. Payment / Store of Value
+BTC-USD
+LTC-USD
+BCH-USD
+
+# 2. Smart Contract Platforms (Layer 1)
+ETH-USD
+SOL-USD
+BNB-USD
+ADA-USD
+XRP-USD
+
+# 3. Stablecoins (Risk-Off Assets)
+USDT-USD
+USDC-USD
+DAI-USD
+
+# 4. DeFi Tokens
+UNI7083-USD
+AAVE-USD
+MKR-USD
+LINK-USD
+
+# 5. Exchange Tokens
+KCS-USD
+OKB-USD
+CRO-USD
+
+# 6. Meme Coins
+DOGE-USD
+SHIB-USD
+PEPE24478-USD
+
+# 7. Privacy Coins
+XMR-USD
+ZEC-USD
+DASH-USD

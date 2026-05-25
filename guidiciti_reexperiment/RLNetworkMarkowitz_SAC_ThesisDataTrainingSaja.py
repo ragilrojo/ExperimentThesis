@@ -93,7 +93,9 @@ def get_centrality_weights(returns_window, gamma=1.0):
 def get_network_metrics(returns_window):
     T, N = returns_window.shape
     corr_f  = apply_rmt_filter(returns_window)
-    density = np.sum(np.abs(corr_f) > 0.1) / (N * N)
+    # 1. Network Density (standard undirected: ignore diagonal)
+    upper_idx = np.triu_indices(N, k=1)
+    density   = np.sum(np.abs(corr_f[upper_idx]) > 0.1) / (N * (N - 1) / 2) if N > 1 else 0.0
     dist_mat = np.sqrt(np.maximum(0, 2 * (1 - corr_f)))
     G_full = nx.from_numpy_array(dist_mat)
     mst = nx.minimum_spanning_tree(G_full)

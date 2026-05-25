@@ -1,0 +1,10 @@
+Period,Experiment,Sharpe_Mean,Sharpe_Std
+Period-1 (Early),E2,14.320687600145044,1.969970606443255
+Period-1 (Early),Comp_Static_Gamma0,10.066505945778752,0.0
+Period-1 (Early),Classic-MV,9.268458453777265,0.0
+Period-2 (Mid),E2,-0.23871863388266043,0.49417104834975945
+Period-2 (Mid),Comp_Static_Gamma0,-0.12214678788021277,0.0
+Period-2 (Mid),Classic-MV,-0.1490041900711614,0.0
+Period-3 (Late),E2,-1.1516082576358206,0.17115518934060123
+Period-3 (Late),Comp_Static_Gamma0,-1.3378121775841494,0.0
+Period-3 (Late),Classic-MV,-1.3413991703901098,0.0

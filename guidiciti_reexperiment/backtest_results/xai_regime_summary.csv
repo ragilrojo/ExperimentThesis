@@ -1,8 +1,8 @@
 Metric,Value,Signif.
-Pearson (Vol),0.1687938075333648,*
-Pearson (Mom),-0.14815920400577054,*
-Spearman (Vol),0.266989979887347,*
-Spearman (Mom),-0.2067687860129161,*
-Mean Gamma High Vol,1.5862075692599582,
-Mean Gamma Low Vol,-0.16850007822116217,
-T-test p-value,0.00035910898879649403,*
+Pearson (Vol),0.23056894298980715,*
+Pearson (Mom),0.2950929116524976,*
+Spearman (Vol),0.11507736653832563,
+Spearman (Mom),0.2271849299283532,*
+Mean Gamma High Vol,0.5045496729231372,
+Mean Gamma Low Vol,0.3046676144003868,
+T-test p-value,0.25602125233694095,

@@ -1,0 +1,601 @@
+﻿python : Multiple definitions in dictionary at byte 0x20119 for key /MediaBox
+At line:1 char:1
++ python -c "
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Multiple defini...r key /MediaBox:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Multiple definitions in dictionary at byte 0x203e0 for key /MediaBox
+Multiple definitions in dictionary at byte 0x20652 for key /MediaBox
+Multiple definitions in dictionary at byte 0x207e4 for key /MediaBox
+Multiple definitions in dictionary at byte 0x20983 for key /MediaBox
+Multiple definitions in dictionary at byte 0x20b1a for key /MediaBox
+Multiple definitions in dictionary at byte 0x20ccc for key /MediaBox
+Multiple definitions in dictionary at byte 0x20e66 for key /MediaBox
+Multiple definitions in dictionary at byte 0x21015 for key /MediaBox
+Multiple definitions in dictionary at byte 0x211c4 for key /MediaBox
+Multiple definitions in dictionary at byte 0x2146e for key /MediaBox
+=== PAGE 1 ===
+ORIGINAL RESEARCH
+published: 24 April 2020
+doi: 10.3389/frai.2020.00022
+Frontiers in Arti∩¼ücial Intelligence | www.frontiersin.org 1 April 2020 | Volume 3 | Article 22Editedby:
+ShathaQamhiehHashem,
+An-NajahNationalUniversity,Palestine
+Reviewedby:
+AudriusKabasinskas,
+KaunasUniversityofTechnology,
+Lithuania
+JirakomSirisrisakulchai,
+ChiangMaiUniversity,Thailand
+*Correspondence:
+PaoloGiudici
+paolo.giudici@unipv.it
+PaoloPagnottoni
+paolo.pagnottoni01@
+universitadipavia.it
+Specialtysection:
+Thisarticlewassubmittedto
+Arti∩¼ücialIntelligenceinFinance,
+asectionofthejournal
+FrontiersinArti∩¼ücialIntelligence
+Received: 06November2019
+Accepted: 24March2020
+Published: 24April2020
+Citation:
+GiudiciP,PagnottoniPandPolinesiG
+(2020)NetworkModelstoEnhance
+AutomatedCryptocurrencyPortfolio
+Management.Front.Artif.Intell.3:22.
+doi:10.3389/frai.2020.00022Network Models to Enhance
+Automated Cryptocurrency Portfolio
+Management
+PaoloGiudici1*,PaoloPagnottoni1*andGloriaPolinesi2
+1DepartmentofEconomicsandManagement,UniversityofPavi a,Pavia,Italy,2DepartmentofEconomicsandSocial
+Sciences,Universit├íPolitecnicadelleMarche,Ancona,Ita ly
+The usage of cryptocurrencies, together with that of ∩¼ünanci al automated consultancy,
+is widely spreading in the last few years. However, automate d consultancy services are
+not yet exploiting the potentiality of this nascent market, which represents a class of
+innovative∩¼ünancialproductsthatcanbeproposedbyrobo-a dvisors.Forthisreason,we
+proposeanovelapproachtobuildef∩¼ücientportfolioalloca tionstrategiesinvolvingvolatile
+∩¼ünancialinstruments,suchascryptocurrencies.Inotherw ords,wedevelopanextension
+of the traditional Markowitz model which combines Random Ma trix Theory and network
+measures, in order to achieve portfolio weights enhancing p ortfoliosΓÇÖ risk-return pro∩¼üles.
+The results show that overall our model overperforms severa l competing alternatives,
+maintaining a relatively low level of risk.
+Keywords: cryptocurrencies, correlation networks, netwo rk centrality, portfolio optimization, random matrix
+theory, minimal spanning tree
+1. INTRODUCTION
+FinTech innovations are rapidly expanding nowadays, with applic ations including payments,
+lending,insuranceandassetmanagement,amongothers.Two technicalreportsfromtheFinancial
+Stability Board (FSB) ( FSB, 2017a,b )ΓÇöestablish several key drivers for FinTech, i.e., the shif t of
+consumer preferences on the demand side, the change of ∩¼ünanci al regulations on the supply side
+andthetechnologyevolution.
+Inthiscontext,servicesofautomated∩¼ünancialconsulting arewidelyspreadingand,inparticular
+robo-advisors1.TheyaresupposedtomatchtheinvestorsΓÇÖriskpro∩¼ülewithspeci ∩¼ücclassof∩¼ünancial
+assets and thereby build an e∩¼âcient portfolio allocation for e ach speci∩¼üc client. However, the
+mechanisms underlying the portfolio construction are often obscure, as well as they arguably do
+not properly take into account for multivariate dependencies a cross securities which are key to
+achievediversi∩¼ücationand,therefore,mitigate∩¼ünancial risk.
+
+=== PAGE 2 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+price formation process (see Brandvold et al., 2015; Pagnottoni
+andDimp∩¼é,2018;GiudiciandAbu-Hashish,2019 ).Otherrelated
+researches studied the interconnectedness and spillover in t he
+cryptocurrency market (such as Corbet et al., 2018b; Giudici
+and Pagnottoni, 2019a,b ). Another important area regards the
+study of Bitcoin derivativesΓÇöi.e., options and futures writ ten on
+Bitcoin, with studies conducted by Corbet et al. (2018a) ,Baur
+and Dimp∩¼é (2019) ,Giudici and Polinesi (2019) , andPagnottoni
+(2019).
+From a methodological viewpoint, we base our analysis on
+an important stream of literature, which focuses on stock and
+∩¼ünancial networks built on correlation matrices. The semin al
+paper by Mantegna (1999) uses correlation matrices to infer
+the hierarchical structure of stock markets, deriving a dis tance
+measurebasedoncorrelationmatricesandbuildingthesocal led
+MinimalSpanningTree(MST),agraphicalrepresentationableto
+connectassetswhicharesimilarintermsofreturnsinapairw ise
+manner. After that, a research by Tola et al. (2008) uses the
+Random Matrix Theory (RMT) together with several clustering
+techniques and show that this signi∩¼ücantly lowers portfolio
+risks. Subsequently, other papers about portfolio constructi on
+involving the network structure of ∩¼ünancial assets followed (see
+Zhan et al., 2015; Le├│n et al., 2017; Ra∩¼ânot, 2017; Ren et al.,
+2017).
+To the best of our knowledge, there are no papers yet
+that exploit network topologies to build portfolios composed
+by cryptocurrencies. We ∩¼üll this gap proposing a model that
+exploits the network structure of cryptocurrencies to provide
+a portfolio asset allocation that well compares with traditio nal
+ones. Following Mantegna (1999) we use MarkowitzΓÇÖ asset
+allocation as a benchmark, and we check whether our proposal
+isabletoimproveonit,intermsofrisk/returnpro∩¼üle.
+Indeed, the originality of the current paper is 2-fold. From
+a methodological point of view, we improve the traditional
+(Markowitz,1952 )portfolioallocationstrategybymeansofRMT
+and MST and by taking network centralities speci∩¼ücally into
+account. Moreover, throughout this technique we are able to s et
+a parameter of systemic risk aversion that investors can tune
+to better match their investment strategies with their own r isk
+pro∩¼üle.Fromanempiricalviewpoint,weapplyourmethodology
+to data coming from a nascent and highly volatile market, i.e .,
+the cryptocurrency one. This is particularly interesting, as the
+cryptocurrencymarketisrapidlyexpandinganditsopportunitie s
+due to the high uncertainty (and volatility) around it are qu ite
+appealing,andthusagreaternumberofinvestorswilllikelyen ter
+itintheshortrun.
+Our empirical ∩¼ündings con∩¼ürm the e∩¼Çectiveness of our
+model in achieving better cumulative portfolio performances ,
+while keeping a relatively low level of risk. In particular, we
+show that our proposed model which employs RMT, MST and
+centrality measures rapidly adapts to market con
+
+=== PAGE 3 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+2.2. The Minimal Spanning Tree
+In order to simplify the relationships given by the ∩¼ültered
+correlation matrix CΓêùobtained from the random matrix
+approach,weapplytheMinimalSpanningTreerepresentationof
+thecryptocurrencyreturntimeseries.Thisisconsistentwi ththe
+literature on stock similarities (i.e., Mantegna and Stanley, 1999;
+Bonannoetal.,2003;SpeltaandAra├║jo,2012 ).
+Given the ∩¼ültered correlation matrix obtained in the step
+above, we may derive an Euclidean distance for each pairwise
+correlationelementinthematrix,i.e.,
+dij=/radicalBig
+2ΓêÆ2cΓêù
+ij, (4)
+wherecΓêù
+ijis a generic element ( i,j) of the matrix CΓêù, withi,j=
+1,...,N. Each pairwise distance can be inserted in the so-called
+distance matrix D= {dij}. The MST algorithm is able to reduce
+the number of links between the assets fromN(NΓêÆ1)
+2toNΓêÆ1
+linkingeachnodetoitsclosestneighbor.Inparticular,wei nitially
+considerNclusters associated to the Ncryptocurrencies and, at
+eachsubsequentstep,wemergetwogenericclusters liandljif:
+d/parenleftbig
+li,lj/parenrightbig
+=min/braceleftbig
+d/parenleftbig
+li,lj/parenrightbig/bracerightbig
+,
+withthedistancebetweenclustersbeingde∩¼ünedas:
+╦åd/parenleftbig
+li,lj/parenrightbig
+=min/braceleftbig
+dpq/bracerightbig
+,
+beingpΓêêliandqΓêêlj.Thisprocedureisiterativelyrepeateduntil
+weremainwithjustoneclusterathand.
+Moreover, with the aim of explaining the evolution of
+relationships evolve over time, Spelta and Ara├║jo (2012)
+proposed the so-called residuality coe∩¼âcient, which compares
+the relative strength of the connections above and below a
+thresholddistancevalue,i.e.,
+R=/summationtext
+di,j>LdΓêÆ1
+i,j
+/summationtext
+di,jΓëñLdΓêÆ1
+i,j(5)
+withLbeing the highest threshold distance value ensuring
+connectivity of the MST. Intuitively, the residuality coe∩¼âc ient
+Rincreases when the number of links increasesΓÇömeaning
+the network becomes more sparse, and viceversa lowers with
+decreasingnumberoflinks.
+2.3. Network Centrality Measures
+In this paper we employ of centrality measures in order
+to develop a portfolio allocation that takes into account the
+centrality of a node (cryptocurrency) in the system. Network
+theory includes several centrality measures, such as the de gree
+centrality, counting how many neighbors a node has, as well
+centrality measures based on the spectral properties of graphs
+(seePerra and Fortunato, 2008 ). Among the spectral centrality
+measuresweremarkKatzΓÇÖscentrality(see Katz,1953 ),PageRank
+(BrinandPage,1998 ),hubandauthoritycentralities( Kleinberg,
+1999),andtheeigenvectorcentrality( Bonacich,2007 ).In this paper we employ of the eigenvector centrality, as it
+measures the importance of a node in a network by assigning
+relative scores to all nodes in the network. Relative scores a re
+based on the principle that being connected to few high scoring
+nodes contributes more to the score of the node in question
+than equal connections to low scoring nodes. In other words,
+considering a generic node i, the centrality sco
+
+=== PAGE 4 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+measures in the optimization problem, with respect to the
+traditional Markowitz model, possibly yielding to better ri sk-
+return characteristics of the portfolios. The originality o f our
+approach builds on the fact that we do not only use RMT and
+MSTasalternativeapproachestoquantifyriskdiversi∩¼ücation ,but
+weemployanextensionofthetraditionalMarkowitzmethodby
+includingthesetechniquesintheminimizationproblem.Ind eed,
+inthepresentcasewewanttosolvethefollowingproblem:
+minwwT/Sigma1Γêùw+╬│n/summationdisplay
+i=1xiwi (8)
+subjectto
+/braceleftBigg/summationtextn
+i=1wi=1
+┬╡PΓëÑ/summationtextn
+i=1┬╡i
+n
+wiΓëÑ0
+wherewis the vector of portfolio weights, being withe weight
+associated to the cryptocurrency i,/Sigma1Γêùis the ∩¼ültered variance-
+covariance matrix with generic element ( i,j) represented by
+╧âi╧âjcΓêù
+i,j,╬│is the parameter representing the risk aversion of
+the investor, xiis the eigenvector centrality associated with the
+cryptocurrency i,┬╡Pindicates the return of the portfolio and ┬╡i
+thereturnofthegenericcryptocurrency i.
+Generally speaking, portfolios built upon the traditional
+Markowitz theory are such that the risk is minimized for a
+givenexpectedreturn,usingasinputtherawvariance-covari ance
+matrix of returns. In our case, the methodological improveme nt
+is2-fold.Firstly,wemodifytheinputvariance-covariance matrix,
+which is ∩¼ültered by both RMT and MST. Secondly, we add a
+component derived from the MST structure which relates to
+an extra risk component the investor may want to control for.
+Indeed, by modulating ╬│the investor can set its own level of
+risk aversion toward systemic risk speci∩¼ücally, and not just to
+the portfolio risk as in the Markowitz framework. As a matter
+offact,beingcentralitiesinverselyrelatedwithdistanc es,asmall
+valueof ╬│yieldstoportfolioscomposedbylesssystemicallyrisky
+cryptocurrencies, which generally lie in the peripheral part of
+the network. Conversely, a large value of ╬│makes the algorithm
+select more systemically relevant cryptocurrencies, meani ng
+thosewhoareinthecenterofthenetworkstructure.Forthes ake
+of completeness, we will test di∩¼Çerent values of the systemic r isk
+aversionparameterinthecourseofthecurrentapplication.
+Starting from the cryptocurrency return time series, the ste ps
+ofthealgorithmcanbesummarizedasfollows:
+1. Estimationofthe∩¼ülteredcorrelationmatrix CΓêùbyRMT
+2. Reduction of the number of links in the ∩¼ültered correlation
+matrixCΓêùbyMST
+3. Computation of the ∩¼ültered variance-covariance matrix /Sigma1Γêù
+associatedtothe∩¼ülteredcorrelationmatrix CΓêùinstep2
+4. Computationoftheeigenvectorcentralities xi5. Computation of the portfolio weights by solving the
+minimizationproblem:
+minwwT/Sigma1Γêùw+╬│n/summationdisplay
+i=1xiwis.t./braceleftBigg/summationtextn
+i=1wi=1
+┬╡PΓëÑ/summationtextn
+i=1┬╡i
+n
+wiΓëÑ0/bracerightBigg
+The weights calculation ∩¼ünally yields to the portfolio
+returns which we use to evaluate the performance of our
+allocationmethod.
+3. EMPIRICAL FINDINGS
+3.1. Data
+
+=== PAGE 5 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+TABLE 1 | Summary statistics.
+Mean Std Kurtosis Skewness
+BTC 0.0009 0.04 3.35 ΓêÆ0.07
+ETH ΓêÆ0.0007 0.05 2.90 ΓêÆ0.33
+XRP 0.0004 0.07 15.73 1.80
+USDT 0.0000 0.01 4.28 0.22
+BCH ΓêÆ0.0011 0.08 6.47 0.49
+LTC ΓêÆ0.0003 0.06 8.02 0.66
+BNB 0.0033 0.07 7.74 0.78
+EOS 0.0017 0.07 3.93 0.60
+XLM 0.0021 0.10 26.19 2.03
+TRX 0.0021 0.15 13.15 0.66
+The table shows relevant summary statistics for the 10 cryptocurrencie s considered
+relatedtothewholesampleperiod,i.e.,13September2017ΓÇô10October2019.
+FIGURE 1 | Normalized cryptocurrency price series I. This ∩¼ügure shows th e
+normalized price series for ∩¼üve cryptocurrencies: XRP, BNB, EOS, XLM, TRX,
+relative to the period 7 January 2018ΓÇô17 October 2019.
+For each time window considered, we use 15 weeks of daily
+observationstoestimatethemodel,whilethelastweekisus edfor
+validation purposes. In other words, we compute 93 correlation
+matrices between the 10 cryptocurrency return time series, e ach
+one based on 15 weeks of daily returns and then ∩¼ülter them by
+means of the Random Matrix approach. Applying the Random
+Matrix∩¼ültering,correlationmatricesarerebuiltconsider ingonly
+theeigenvectorscorrespondingtothedeviatingeigenvalue s.
+In order to have a better understanding of the links existing
+between cryptocurrencies, the ∩¼ültered correlation matrice s are
+then used to derive the MST representation over two main
+periods of interest. In particular, we plot the MST structure
+emerging from the period of the cryptocurrency price hype
+(September 2017ΓÇôJanuary 2018) in Figure3, while the MST
+FIGURE 2 | Normalized cryptocurrency price series II. The ∩¼ügure shows the
+normalized price series for ∩¼üve cryptocurrencies: BTC, ETH, USDT, BCH, LTC,
+relative to the period 7 January 2018ΓÇô17 October 2019.
+FIGURE 3 | MST September 2017ΓÇôJanuary 2018. This ∩¼ügure shows the MST
+representation relative to the period of the speculative bu bble.
+structure related to the latest trading period analyzed (June
+2019ΓÇôOctober2019)in Figure4.
+As it is clear from the graph, the two networks show quite
+similarfeatures.Indeed,ETHisthecryptocurrencywhichal ways
+lies in the center of the structure, indicating its central r ole
+in the cryptocurrency market. The only di∩¼Çerence between the
+two graphical representations concerns USDT, which during
+the price hype is not connected directly to ETH as the other
+cryptocurrencies,buttoLTC.ThisislinkedtothefactthatUS DT
+Frontiers in Arti∩¼ücial Intelligence | www.frontiersin.org 5 April 2020 | Volume 3 | Article 22
+
+=== PAGE 6 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+FIGURE 4 | MST June 2019ΓÇôOctober 2019. This ∩¼ügure shows the MST
+relative to the period June 2019ΓÇôOctober 2019.
+FIGURE 5 | MST thresholds and residuality coef∩¼ücients. The black line s hows
+the Max link distance, while the red line shows the residuali ty coef∩¼ücient,
+whose values are reported, respectively on the left and righ t y axis.
+is a stable coin and, therefore, behaves dissimilarly from t he
+other cryptocurrencies considered, being it much less volat ile.
+However, this di∩¼Çerence in behavior levels out during the lat est
+period,asitemergesfrom Figure4.
+To better understand the dynamics of the MST among
+cryptocurrencies, we investigate the evolution of the links over
+time. Indeed, we compute two di∩¼Çerent measures: the Max link,
+i.e., the value of the maximum distance between two pairs of
+FIGURE 6 | Performances of different portfolio strategies. The plot r eports the
+pro∩¼üts and losses of a portfolio with initial value of 100 USD o btained by the
+CRIX benchmark index [Benchmark (CRIX)], the optimization us ing the
+Markowitz approach with the variance-covariance matrix ∩¼ült ered by Glasso
+(Glasso Markowitz), the naive portfolio (Equally Weighted ), our optimization
+using RMT and MST applied to the variance-covariance matrix (Network
+Markowitz), our model based on different values of ╬│(╬│=0.005, 0.025, 0.05,
+0.15, 0.7, 1), and the standard Markowitz portfolio (Classi cal Markowitz). The
+portfolio values are plotted for the period 7 January 2018ΓÇô1 7 October 2019.
+FIGURE 7 | Performances of selected portfolio strategies. The plot re ports the
+pro∩¼üt and losses of a portfolio with initial value of 100 USD ob tained by the
+CRIX benchmark index [Benchmark (CRIX)], the optimization us ing the
+Markowitz approach with the variance-covariance matrix ∩¼ült ered by Glasso
+(Glasso Markowitz), the naive portfolio (Equally Weighted ), our optimization
+using RMT and MST applied to the variance-covariance matrix (Network
+Markowitz) and the standard Markowitz portfolio (Classica l Markowitz). The
+portfolio values are plotted for the period 7 January 2018ΓÇô1 7 October 2019.
+Frontiers in Arti∩¼ücial Intelligence | www.frontiersin.org 6 April 2020 | Volume 3 | Article 22
+
+=== PAGE 7 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+TABLE 2 | Cumulative Pro∩¼üts and Losses.
+Period CRIX GM EW CM NW ╬│=0.005 ╬│=0.025 ╬│=0.05 ╬│=0.15 ╬│=0.7 ╬│=1
+Jan-2018 ΓêÆ0.14 ΓêÆ0.13 ΓêÆ0.16 0.04 ΓêÆ0.22 ΓêÆ0.21 ΓêÆ0.26 ΓêÆ0.27 ΓêÆ0.36 ΓêÆ0.43 ΓêÆ0.43
+May-2018 ΓêÆ0.67 ΓêÆ0.62 ΓêÆ0.60 ΓêÆ0.12 ΓêÆ0.79 ΓêÆ0.78 ΓêÆ0.73 ΓêÆ0.66 ΓêÆ0.83 ΓêÆ1.08 ΓêÆ1.10
+Sep-2018 ΓêÆ1.37 ΓêÆ1.37 ΓêÆ1.43 ΓêÆ0.88 ΓêÆ0.83 ΓêÆ1.02 ΓêÆ1.24 ΓêÆ1.23 ΓêÆ1.40 ΓêÆ1.60 ΓêÆ1.64
+Jan-2019 ΓêÆ1.85 ΓêÆ1.78 ΓêÆ1.78 ΓêÆ1.32 ΓêÆ0.87 ΓêÆ1.50 ΓêÆ1.86 ΓêÆ1.98 ΓêÆ2.19 ΓêÆ2.29 ΓêÆ2.31
+May-2019 ΓêÆ1.35 ΓêÆ1.25 ΓêÆ1.27 ΓêÆ1.01 ΓêÆ0.74 ΓêÆ1.22 ΓêÆ1.33 ΓêÆ1.29 ΓêÆ1.44 ΓêÆ1.55 ΓêÆ1.57
+Sep-2019 ΓêÆ0.99 ΓêÆ1.45 ΓêÆ1.49 ΓêÆ1.02 ΓêÆ0.54 ΓêÆ1.19 ΓêÆ1.34 ΓêÆ1.44 ΓêÆ1.86 ΓêÆ2.13 ΓêÆ2.15
+This table shows the cumulative 4-months Pro∩¼üts and Losses of portfolios unde r different strategies. Particularly, Pro∩¼üts & Losses are computed for the CRIX benchmark index
+(CRIX), the Glasso Markowitz (GM), the naive portfolio (EW), the Network Ma rkowitz (NW), the classical Markowitz (CM), and the proposed models with diffe rent values of ╬│
+(╬│=0.005,0.025,0.05,0.15,0.7,1).Allvaluesareexpressedinpercen tageterms.
+nodes in the tree, and the residuality coe∩¼âcient, meaning th e
+ratio between the number of links which are dropped and the
+number of those who are kept by the MST algorithm. The two
+metrics, computed over the whole sample period, are illustrated
+inFigure5.
+FromFigure5 one may notice that the Max link increases
+during the Bitcoin price hype and ∩¼éuctuates around relatively
+large values until roughly mid 2018, meaning that during thi s
+period correlations between cryptocurrency returns are stro ngly
+misaligned. After that, the index bounces back toward its
+previous values and even below, suggesting that cryptocurren cy
+returns start to behave more similarly during the latest peri od.
+Furthermore,theresidualitycoe∩¼âcientincreasesduringt hevery
+beginning of the sample period, while it sharply declines durin g
+thepricehypephase.Afterthedecrease,thecoe∩¼âcientstaysqu ite
+stable and then gently increases not without ∩¼éuctuations fr om
+mid 2018 to the end of the sample period. This suggests that the
+number of links until mid 2018 was quite limited, and therefo re,
+returnsmisaligned,whereasthesamenumberstartedtoincr ease
+afterthat phase,meaning there were more connections and thu s
+moresynchronicityacrosscryptocurrencyreturns.
+3.2. Portfolio Construction
+Inthissubsectionweillustratetheresultsrelatedtothepr oposed
+portfolio strategies. The optimal portfolio weights are obtai ned
+through the constrained minimization of the objective func tion
+in Equation 8. For the sake of completeness, we use di∩¼Çerent
+values of the systemic risk aversion parameter ╬│, meaning ╬│=
+0.005,0.025,0.05,0.15,0.7,1. These values have been chos en,
+without loss of generality, to be representative of di∩¼Çerent
+aversion pro∩¼üles. While ╬│=0 indicates no aversion, ╬│=1
+indicatesahighaversion,withsystemicriskbeinggiventh esame
+importanceasnon-systemicone.
+We use ∩¼üfteen weeks, i.e., to compute the optimal portfolio
+weights as described in section 2. We then use the last
+week a
+
+=== PAGE 8 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+TABLE 4 | Sharpe ratio.
+Period GM EW CM NW ╬│=0.005 ╬│=0.025 ╬│=0.05 ╬│=0.15 ╬│=0.7 ╬│=1
+Jan-2018 ΓêÆ0.05 ΓêÆ0.05 ΓêÆ0.03 ΓêÆ0.13 ΓêÆ0.12 ΓêÆ0.08 ΓêÆ0.06 ΓêÆ0.08 ΓêÆ0.09 ΓêÆ0.10
+May-2018 ΓêÆ0.14 ΓêÆ0.14 ΓêÆ0.19 ΓêÆ0.03 ΓêÆ0.04 ΓêÆ0.08 ΓêÆ0.09 ΓêÆ0.08 ΓêÆ0.07 ΓêÆ0.07
+Sep-2018 ΓêÆ0.10 ΓêÆ0.09 ΓêÆ0.17 ΓêÆ0.04 ΓêÆ0.17 ΓêÆ0.17 ΓêÆ0.20 ΓêÆ0.20 ΓêÆ0.18 ΓêÆ0.17
+Jan-2019 0.10 0.09 0.11 0.09 0.06 0.08 0.11 0.12 0.12 0.12
+May-2019 ΓêÆ0.02 ΓêÆ0.02 0.01 0.08 0.02 0.02 ΓêÆ0.00 ΓêÆ0.03 ΓêÆ0.04 ΓêÆ0.04
+Sep-2019 ΓêÆ0.06 ΓêÆ0.06 ΓêÆ0.03 0.03 0.07 ΓêÆ0.11 ΓêÆ0.14 ΓêÆ0.14 ΓêÆ0.14 ΓêÆ0.14
+This table shows the 4-months values of Sharpe ratio of portfolios under diff erent strategies. In particular, the SR is computed for the Glasso Markowitz (GM), the naive portfolio (EW),
+theclassicalMarkowitz(CM),theNetworkMarkowitz(NW),andforallth evalueof ╬│.
+TABLE 5 | Rachev ratio.
+Period GM EW CM NW ╬│=0.005 ╬│=0.025 ╬│=0.05 ╬│=0.15 ╬│=0.7 ╬│=1
+Jan-2018 0.74 0.75 0.63 0.64 0.69 0.77 0.79 0.78 0.77 0.99
+May-2018 0.73 0.75 0.95 0.83 0.74 0.77 0.83 0.87 0.87 0.55
+Sep-2018 0.81 0.84 0.87 0.61 0.80 0.75 0.76 0.80 0.80 0.48
+Jan-2019 1.16 1.11 1.47 1.24 1.34 1.36 1.39 1.40 1.40 1.26
+May-2019 0.80 0.80 1.05 0.97 0.93 0.84 0.75 0.72 0.72 0.98
+Sep-2019 0.75 0.78 1 1.14 0.43 0.38 0.38 0.38 0.37 0.78
+This table shows the 4-months values of Rachev Ratio (RR) of portfolios unde r different strategies. In particular, the RR is computed for the Glasso Mar kowitz (GM), the naive portfolio
+(EW),theclassicalMarkowitz(CM),theNetworkMarkowitz(NW),andfor allthevalueof ╬│.
+ourallocationstrategieslosseswhicharelowerthanthose yielded
+byothercompetingmethodologies.
+On the one hand, during a ∩¼ürst phase which lasts roughly
+until mid 2018, the traditional Markowitz portfolio seems to
+overperform the other portfolio allocation strategies. Inde ed,
+the allocation by MarkowitzΓÇÖ technique yields to positive
+(cumulative)returnsuntilJanuary2018andjustslightlyn egative
+onesuntilMay2018,howeverstilllowerthanthelossesprovi ded
+bytheotherstrategiesinabsoluteterms.
+On the other hand, from September 2018 onwards all
+portfolios start providing strong negative returns. Indeed, the
+returns yielded by the portfolio constructed via Markowitz
+start to decline dramatically, together with those of the mo del
+including the systemic risk aversion parameter. This is beca use
+the latter model takes into account the centrality of the
+cryptocurrencies in the network and is therefore more adaptiv e
+tomarketconditions,regardlessofwhethertheyarefavora bleor
+not. Indeed it can be noticed thatΓÇöoverallΓÇöduring bull mark et
+periods our model taking into account for risk aversion react s
+very fast to upward movements and yields to good cumulative
+performances;conversely,duringdownmarketperiods,thesa me
+model yields to worse relative performances due to declining
+marketconditions.
+However, during the second half of our sample period our
+proposed model with the systemic risk aversion parameter ╬│set
+to0(NetworkMarkowitz)clearlyoverwhelmstheotherportfo lio
+allocation strategies
+
+=== PAGE 9 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+FIGURE 8 | Winning strategy portfolio weights. The ∩¼ügure shows the port folio weights associated to the winning strategyΓÇöi.e., the Network Markowitz (NW)ΓÇöfor the
+analyzed time period.
+the Sharpe ratio, when data is non-symmetric, as in our contex t.
+It is calculated as the ratio between an extreme gain and an
+extremeloss.
+Table5shows that the Network Markowitz approach yields
+the best performances in the initial and ∩¼ünal periods, and the
+Classic Markowitz in all other periods. The other strategies
+generally show worse performances. This is consistent with o ur
+previous ∩¼ündings, and with the fact that the Rachev ratio take s
+highervaluesduringperiodscharacterizedbydecreasingre turns,
+suchasthequarterprecedingJanuary2019.
+Overall,wecannotsaythattheproposedmodeloverperforms
+traditional approach (such as Glasso Markowitz and Classical
+Markowitz).Itdoessoincertainperiodsandaccordingtocer tain
+riskaversionparameterizations.
+For the sake of completeness, we plot the portfolio weights
+of the winning strategy over the evaluation time horizon in
+Figure8.Asonecanclearlysee,thecompositionoftheportfolio
+varies quite much over time. Indeed, during the ∩¼ürst period of
+the sample, approximately until February 2018, the portfolio is
+composed by various assets, with USDT gaining a high share
+over time, being it the most stable across all. After that, BT C is
+the cryptocurrency which is mostly selected by our algorithm ,
+roughly until October 2018 (with some exceptions), as it is
+considered a proxy of the whole market. Finally, the algorith mselectsdi∩¼Çerentcryptocurrencycompositionsuntiltheendof the
+sample,beingthelatterahighlyuncertainperiodforthemarke t.
+Last, we present, for comparison purposes, the portfolio
+weightsassociatedwith ╬│=1.
+WhileFigure8givestheweightsrelativetothesituationofno
+systemic risk aversion, Figure9 gives the weight corresponding
+to a very high systemic risk aversion, in which it has the same
+importanceasnon-systemicrisk.
+4. CONCLUSIONS
+Inthispaperwehaveproposedamethodologythataimstobuild
+anallocationstrategywhichissuitableforhighlyvolatil emarkets,
+such as cryptocurrency ones. In particular, we have applied our
+models to a set of 10 cryptocurrency return time series, select ed
+intermsofmarketcapitalization.Wehaveshownthattheuseof
+network models can enhance portfoliosΓÇÖ risk-return pro∩¼üles an d
+mitigatelossesduringdownmarketperiods.
+We have demonstrated how the use of centrality measures,
+together with tuning an investorΓÇÖs systemic risk aversion, is a
+suitablemethodologytomakepro∩¼ütsduringbullmarketperiods ,
+as this method is rapidly adaptive to market conditions. We
+have also shown that, to protect investors from losses during
+bearmarketperiods,thecombinationofRandomMatrixTheory
+Frontiers in Arti∩¼ücial Intelligence | www.frontiersin.org 9 April 2020 | Volume 3 | Article 22
+
+=== PAGE 10 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+FIGURE 9 | Highly risk adverse strategy portfolio weights. This ∩¼ügure s hows the portfolio weights associated to a highly systemic r isk adverse strategyΓÇö ╬│=1ΓÇöfor
+the analyzed time period.
+and Minimal spanning trees can yield to acceptable risk-return
+pro∩¼ülesand/ormitigatelosses.
+Our empirical ∩¼ündings show that, overall, the proposed
+method is acceptable, even during downturn periods. However,
+wecannotclaimthatthisproposedmodelshouldalwaysbeused
+in automated consultancy. It should always be compared with
+competingalternatives,accordingtodi∩¼Çerentmarketcondit ions
+anddi∩¼Çerentriskaversions.
+We strongly believe that the proposed model should be
+further tested in di∩¼Çerent contexts. For this purpose, we provid e
+at https://www.∩¼üntech-ho2020.eu a link to the used data and
+software, so the proposed methods can be fully reproduced. The
+software is written in the R language, and allows the methods to
+beextendedtootherdataandcontexts.
+Further research should involve, besides the application to
+other contexts, the consideration of di∩¼Çerent base portfolio
+allocation models. We have used MarkowitzΓÇÖ as is the most
+employedbyrobotadvisoryplatforms.
+DATA AVAILABILITY STATEMENT
+The datasets analyzed for this study can be found in
+Coinmarketcap(https://coinmarketcap.com/).Thesoftware usedin this article is not publicly available because based on a
+proprietary source. Requests to access the datasets should be
+directedtoGloriaPolinesi(glopol@hotmail.it).
+AUTHOR CONTRIBUTIONS
+Thepaperwaswritteninclosecollaborationbetweentheautho rs.
+However,sections2and4havebeenwrittenbyGP,section1an d
+3byPP,whilePGhassupervisedandcoordinatedthework.
+FUNDING
+This research has received funding from the European UnionΓÇÖs
+Horizon 2020 research and innovation program FIN-TECH:
+A Financial supervision and Technology compliance training
+programme under the grant agreement No 825215 (Topic: ICT-
+35-2018,Typeofaction:CSA).
+SUPPLEMENTARY MATERIAL
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.338 9/frai.2020.
+00022/full#supplementary-material
+Frontiers in Arti∩¼ücial Intelligence | www.frontiersin.org 10 April 2020 | Volume 3 | Article 22
+
+=== PAGE 11 ===
+Giudici et al. Network Automated Cryptocurrency Portfolio Management
+REFERENCES
+Baur, D. G. and Dimp∩¼é, T. (2019). Price discovery in bitcoin spot or futures?.J.
+Fut.Markets .39.7,803ΓÇô817.doi:10.2139/ssrn.3171464
+Beenakker,C.W.(1997).Random-matrixtheoryofquantumtransport .Rev.Mod.
+Phys.69:731.doi:10.1103/RevModPhys.69.731
+Bonacich, P. (2007). Some unique properties of eigenvector centra lity.Soc. Netw .
+29,555ΓÇô564.doi:10.1016/j.socnet.2007.04.002
+Bonanno, G., Caldarelli, G., Lillo, F., and Mantegna, R. N. (2003). Topology of
+correlation-basedminimalspanningtreesinrealandmodelmarkets. Phys.Rev.
+E68:046130.doi:10.1103/PhysRevE.68.046130
+Brandvold, M., Moln├ír, P., Vagstad, K., and Valstad, O. C. A. (201 5). Price
+discovery on bitcoin exchanges. J. Int. Financ. Markets Inst. Money 36, 18ΓÇô35.
+doi:10.1016/j.int∩¼ün.2015.02.010
+Brin, S., and Page, L. (1998). The anatomy of a large-scale hypertex tual
+web search engine. Comput. Netw. ISDN Syst . 30, 107ΓÇô117.
+doi:10.1016/S0169-7552(98)00110-X
+Conlon, T., Ruskin, H. J., and Crane, M. (2007). Random matrix theo ry and
+fund of funds portfolio optimisation. Phys. A Stat. Mech. Appl . 382, 565ΓÇô576.
+doi:10.1016/j.physa.2007.04.039
+Corbet, S.,Lucey, B., Peat, M., and Vigne, S.(2018a).Bitco in futures-whatuseare
+they?Econ.Lett .172,23ΓÇô27.doi:10.1016/j.econlet.2018.07.031
+Corbet, S., Meegan, A., Larkin, C., Lucey, B., and Yarovaya, L. (2018b). Exploring
+thedynamicrelationshipsbetweencryptocurrenciesandother∩¼ünanc ialassets.
+Econ.Lett .165,28ΓÇô34.doi:10.1016/j.econlet.2018.01.004
+Eom, C., Oh, G., Jung, W.-S., Jeong, H., and Kim, S. (2009). Topolog ical
+properties of stock networks based on minimal spanning tree and random
+matrix theory in ∩¼ünancial time series. Phys. A Stat. Mech. Appl . 388, 900ΓÇô906.
+doi:10.1016/j.physa.2008.12.006
+Friedman, J., Hastie, T., and Tibshirani, R. (2008). Sparse inve rse
+covariance estimation with the graphical lasso. Biostatistics 9, 432ΓÇô441.
+doi:10.1093/biostatistics/kxm045
+FSB (2017a). Financial Stability Implications From Fintech: Superviso ry and
+RegulatoryIssuesThatMeritAuthoritiesΓÇÖAttention .Basel:FSB.
+FSB(2017b). FintechCredit .FinancialStabilityBoardReport(27June,2017).
+Giudici, P., and Abu-Hashish, I. (2019). What determines bitc oin exchange
+prices? A network var approach. Finance Res. Lett . 28, 309ΓÇô318.
+doi:10.1016/j.frl.2018.05.013
+Giudici, P., and Pagnottoni, P. (2019a). High frequency price ch ange spillovers in
+bitcoinmarkets. Risks7:111.doi:10.3390/risks7040111
+Giudici,P.,andPagnottoni,P.(2019b).Vectorerrorcorrectio nmodelstomeasure
+connectednessofbitcoinexchangemarkets. Appl.Stochast.ModelsBus.Ind .36,
+95ΓÇô109.doi:10.1002/asmb.2478
+Giudici, P. and Polinesi, G. (2019). Crypto price discovery through correlation
+networks. Ann.Oper.Res .2.doi:10.1007/s10479-019-03282-3
+Guhr, T., M├╝ller-Groeling, A., and Weidenm├╝ller, H. A. (1998). Rando m-matrix
+theories in quantum physics: common concepts. Phys. Rep . 299, 189ΓÇô425.
+doi:10.1016/S0370-1573(97)00088-4
+Katz, L. (1953). A new stat
+

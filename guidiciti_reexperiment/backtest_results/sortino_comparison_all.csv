@@ -1,0 +1,8 @@
+,Sortino (Training),Sortino (Testing),Gap (Train-Test),Gap %,Sortino Std Train,Sortino Std Test
+Classical Markowitz,-0.267,-0.2898,0.0228,8.6,,
+NW (Gamma=1.0),-0.4635,-0.1513,-0.3122,-67.4,,
+NW (Gamma=0.0),-0.3782,-0.1308,-0.2475,-65.4,,
+BTC (Buy & Hold),-0.4904,1.375,-1.8654,-380.4,,
+SAC-Net (Sortino),-0.2994,-0.0522,-0.2473,-82.6,0.0685,0.0689
+SAC-Net (Sortino+DD),-0.2994,-0.0522,-0.2473,-82.6,0.0685,0.0689
+SAC-Net (Sharpe),-0.2994,-0.0522,-0.2473,-82.6,0.0685,0.0689

@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Portfolio Strategy Performance Comparison — Test Period}
+\label{tab:performance_comparison}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Strategy & Sharpe & Sortino & Calmar & CVaR$_{95}$ & Max DD & Ann.Ret & Ann.Vol & Ulcer \\
+\midrule
+E2-Sharpe & -0.379 & -0.435 & -0.418 & 0.1160 & -0.611 & -0.256 & 0.674 & 0.3294 \\
+E2-Sortino & 0.046 & 0.058 & 0.057 & 0.1065 & \textbf{-0.531} & 0.030 & 0.655 & \textbf{0.2829} \\
+E2-Calmar & -0.112 & -0.131 & -0.131 & 0.1121 & -0.561 & -0.073 & 0.653 & 0.2987 \\
+E2-Ulcer & \textbf{0.197} & \textbf{0.236} & \textbf{0.241} & 0.1122 & -0.556 & \textbf{0.134} & 0.683 & 0.2872 \\
+E2-Ensemble & 0.022 & 0.027 & 0.027 & 0.1067 & -0.545 & 0.014 & 0.647 & 0.2893 \\
+gamma=0 (Static) & -0.074 & -0.093 & -0.083 & 0.0982 & -0.546 & -0.045 & 0.612 & 0.2902 \\
+gamma=1 (Static) & -0.083 & -0.107 & -0.093 & \textbf{0.0976} & -0.543 & -0.051 & \textbf{0.611} & 0.2933 \\
+gamma=2 (Static) & -0.083 & -0.107 & -0.093 & \textbf{0.0976} & -0.543 & -0.051 & \textbf{0.611} & 0.2933 \\
+Classic-MV & -0.108 & -0.137 & -0.121 & 0.0992 & -0.550 & -0.067 & 0.616 & 0.2941 \\
+Equal Weight & -0.345 & -0.435 & -0.389 & 0.1085 & -0.585 & -0.227 & 0.659 & 0.3248 \\
+Inv. Volatility & -0.314 & -0.393 & -0.354 & 0.1073 & -0.576 & -0.204 & 0.650 & 0.3202 \\
+\bottomrule
+\end{tabular}
+\\[-4pt]
+{\footnotesize Note: \textbf{Bold} = best per column. CVaR$_{95}$, Max DD, Ann.Vol, Ulcer: lower is better. Periods per year = 252.}
+\end{table}

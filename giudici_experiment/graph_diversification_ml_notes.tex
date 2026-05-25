@@ -1,0 +1,118 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\geometry{a4paper, margin=1in}
+
+\lstset{
+    language=Python,
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{orange}
+}
+
+\title{Graph Diversification: Potensi Pengembangan ke Machine Learning}
+\author{Catatan Tesis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Graph Diversification: Bisa Dijadikan Machine Learning?}
+Jawaban singkat: \textbf{Ya, bisa} — dan ini bisa jadi kontribusi tesis Anda yang paling kuat!
+
+\section*{Memahami Graph Diversification Saat Ini}
+Cara kerjanya sekarang (bukan ML, ini \textit{rule-based}):
+
+\begin{center}
+    Data Return Historis $\rightarrow$ Hitung Matriks Korelasi (matematika biasa) $\rightarrow$ Bangun Graph (edge = korelasi $> \theta$) $\rightarrow$ Cari Maximum Independent Set / MIS (algoritma deterministik) $\rightarrow$ Beri bobot sama rata ke aset terpilih.
+\end{center}
+
+\textbf{Masalahnya}: Tidak ada yang ``dipelajari'' — threshold $\theta$ ditentukan manual (0.4 atau 0.5), bobot selalu sama rata, tidak ada adaptasi dari data.
+
+\section*{Evolusi ke Machine Learning: 3 Level}
+
+\subsection*{Level 1 — Belajar Threshold (Sederhana)}
+\begin{itemize}
+    \item \textbf{Saat ini}: $\theta = 0.4$ (manual, \textit{fixed}).
+    \item \textbf{Versi ML}: $\theta^* = \arg\max \text{Sharpe}(\theta)$ melalui \textit{cross-validation} atau \textit{grid search}.
+    \item Ini sudah bisa disebut ``machine learning'' karena parameter dipelajari dari data.
+\end{itemize}
+
+\subsection*{Level 2 — Belajar Bobot Aset (Menengah)}
+\begin{itemize}
+    \item \textbf{Saat ini}: Bobot = $1/n$ (sama rata untuk semua aset terpilih).
+    \item \textbf{Versi ML}: Bobot = $f(\text{embedding GNN})$. Model memprediksi bobot optimal.
+    \item Setiap node (aset) dalam graph menghasilkan \textit{embedding} dari GNN. \textit{Embedding} ini dipakai untuk prediksi bobot, bukan sekadar $1/n$.
+\end{itemize}
+
+\subsection*{Level 3 — End-to-End Learnable Portfolio (Canggih)}
+\begin{itemize}
+    \item \textbf{Input}: Return historis + Struktur Graph.
+    \item \textbf{GNN Layer}: Belajar representasi aset.
+    \item \textbf{Attention Layer}: Belajar MANA aset yang paling ``independen''.
+    \item \textbf{Softmax $\rightarrow$ Bobot Portofolio}.
+    \item \textbf{Loss Function}: $-\text{Sharpe Ratio}$ (\textit{maximize}).
+    \item \textbf{Backpropagation}: \textit{Update} semua parameter. Ini adalah Graph Portfolio Network yang sepenuhnya \textit{end-to-end}.
+\end{itemize}
+
+\section*{Perbandingan Pendekatan}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Pendekatan} & \textbf{Apa yang Dipelajari} & \textbf{Nama Teknis} \\
+        \midrule
+        GD klasik (sekarang) & Tidak ada & Rule-based \\
+        GD + threshold learning & Nilai $\theta$ optimal & Grid Search / BO \\
+        GD + GNN weights & Bobot dari embedding & GNN Regression \\
+        GD + Attention & Seleksi aset + bobot & Graph Attention Network (GAT) \\
+        GD + RL & Keputusan rebalancing & Deep RL / DQN \\
+        End-to-end & Segalanya & E2E Portfolio GNN \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section*{Yang Paling Realistis untuk Tesis Anda}
+Dari hasil eksperimen, GD ($\theta=0.5$) adalah strategi terbaik (Sharpe 1.09 di \textit{recovery}!). Langkah natural berikutnya adalah menggantikan bobot sama rata dengan bobot yang dipelajari GNN:
+
+\begin{lstlisting}[caption=Perbandingan Kode GD Klasik vs ML]
+# Saat ini (GD klasik):
+weights[asset] = 1.0 / n_selected   # <- sama rata
+
+# Versi ML yang diusulkan:
+embedding = gnn(features, edges)     # <- GNN belajar representasi
+weights = softmax(linear(embedding)) # <- belajar bobot optimal
+# Dilatih untuk maximize Sharpe Ratio
+\end{lstlisting}
+
+\section*{Keunggulan Pendekatan Ini untuk Tesis}
+\begin{itemize}
+    \item[\checkmark] Berbasis pada temuan nyata (GD sudah terbukti bagus).
+    \item[\checkmark] Menambah komponen ML yang \textit{genuine} (bukan sekedar estimasi korelasi).
+    \item[\checkmark] Dapat dibandingkan langsung dengan GD klasik sebagai \textit{baseline}.
+    \item[\checkmark] Kontribusi jelas: ``\textit{ML-enhanced Graph Diversification vs. Rule-based Graph Diversification}''.
+\end{itemize}
+
+\section*{Apakah Perlu Diimplementasikan Sekarang?}
+Tidak harus. Untuk tesis, Anda bisa:
+\begin{enumerate}
+    \item \textbf{Implementasi penuh}: Butuh waktu lebih, tapi kontribusi lebih besar.
+    \item \textbf{Sebagai ``Future Work''}: Tulis di bab kesimpulan bahwa ini arah penelitian selanjutnya yang menjanjikan.
+\end{enumerate}
+
+Mengingat GD ($\theta=0.5$) sudah sangat bagus (Sharpe 1.09), argumen tesis yang kuat adalah: ``Graph Diversification berbasis \textit{rule} terbukti unggul. Pengembangan lebih lanjut dengan ML (\textit{learned weights}) berpotensi meningkatkan performa lebih jauh.''
+
+\end{document}

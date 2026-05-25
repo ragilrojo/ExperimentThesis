@@ -1,0 +1,46 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.5cm}
+
+\begin{document}
+
+\section*{State-of-the-Art (SOTA) Literature Comparison}
+
+This table and subsequent review summarize the performance and methodology of the proposed strategy in comparison to significant previous research in the field of cryptocurrency portfolio optimization.
+
+\begin{table}[ht!]
+\centering
+\caption{State-of-the-Art (SOTA) Literature Comparison: Cryptocurrency Portfolio Optimization}
+\label{tab:sota_literature}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Researcher (Year)} & \textbf{Methodology} & \textbf{Test Period} & \textbf{Max Sharpe Ratio} \\ \midrule
+Jiang and Liang (2017) & CNN + Reinforcement Learning & 2015 - 2017 & 1.45 (vs B\&H) \\
+Giudici et al. (2020) & Network Markowitz (Graph-based) & 2018 - 2019 & 1.05 - 1.15 \\
+Tianxiang Cui (2024) & CVaR-based Deep RL & 2020 - 2023 & 1.81 \\
+Nurhakim et al. (2024) & Classical Harry Markowitz & 2023 - 2024 & 1.85 \\
+\textbf{Proposed (2025) [Ours]} & \textbf{AI-Gated Mo-Graph (Cluster)} & \textbf{2025 (OOS)} & \textbf{1.02} \\ \bottomrule
+\end{tabular}
+
+\vspace{2mm}
+\footnotesize{$^*$OOS: Out-of-Sample validation period which included high volatility/crash regimes in Q1 2025.}
+\end{table}
+
+\subsection*{Analysis of Related Works}
+
+\textbf{Jiang and Liang (2017)} in their work titled \textit{``Cryptocurrency Portfolio Management with Deep Reinforcement Learning,''} pioneered the application of deep learning in cryptocurrency portfolio management by utilizing a Convolutional Neural Network (CNN) within a Reinforcement Learning (RL) framework. Their model directly outputted portfolio weights to maximize cumulative returns, achieving a Sharpe Ratio significantly higher than the benchmark; however, their approach focused on high-frequency trading assets and did not explicitly incorporate market regime-switching signals to handle systemic crashes.
+
+\textbf{Giudici et al. (2020)} introduced the methodology in their paper \textit{``Network Models to Enhance Automated Cryptocurrency Portfolio Management,''} where they proposed the ``Network Markowitz'' approach. This method utilizes Graph Theory to model the interconnectedness of cryptocurrency prices. By analyzing the network topology and community structures of assets, they proved that considering the correlation network leads to more stable portfolios with improved Sharpe Ratios compared to traditional distance-based diversification, although their study lacked a dynamic AI mechanism to exit the market during extreme bearish regimes.
+
+\textbf{Tianxiang Cui (2024)} proposed a CVaR-based Deep Reinforcement Learning approach in his co-authored paper \textit{``Multi-period portfolio optimization using a deep reinforcement learning hyper-heuristic approach''} (and related work on CVaR-based DRL). This research addressed the non-normal distribution and heavy-tail risks inherent in cryptocurrency markets. By optimizing for Conditional Value at Risk (CVaR) instead of simple variance, the model achieved an exceptional Sharpe Ratio of 1.81 during the 2020-2023 period, demonstrating high efficiency in bull markets but requiring significant computational resources and failing to simplify the selection process through interpretable graph metrics.
+
+\textbf{Nurhakim et al. (2024)} conducted a study titled \textit{``Constructing Optimal Portfolios Using the Single Index Model and Markowitz Model: A Study on Cryptocurrencies,''} exploring the Indonesian cryptocurrency investor context by comparing the Single Index Model and the Harry Markowitz Model on 79 high-cap assets. Their findings recommended the classical Markowitz approach for its ability to provide controlled risks and a positive Sharpe Ratio (1.85) during the 2023-2024 bull run, yet the study highlighted limitations in static models when facing rapid market reversals or high-volatility shifts seen in subsequent years.
+
+\textbf{The Proposed AI-Gated Mo-Graph Strategy (2025)}, as presented in this thesis titled \textit{``AI-Gated Momentum-based Graph Theory for Cryptocurrency Portfolio Optimization''} (tentative), addresses the gaps in previous research by integrating three distinct layers: XGBoost-based regime switching (AI Gating), Momentum Sorting for asset selection, and Graph-based Clustering via Maximum Independent Set (MIS). This hybrid approach recorded a robust Sharpe Ratio of 1.02 during the highly volatile 2025 Out-of-Sample period, effectively protecting the portfolio from a 40\% market crash in early 2025 while capturing alpha during the recovery phase, thereby offering superior adaptability compared to static or single-layered models.
+
+\end{document}

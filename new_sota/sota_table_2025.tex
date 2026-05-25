@@ -1,0 +1,18 @@
+\begin{table}[ht!]
+\centering
+\caption{State-of-the-Art (SOTA) Comparison: AI-Gated Graph Strategy vs. Baselines (Test Period: 2025)}
+\label{tab:sota_comparison}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Selection Logic} & \textbf{AI Gating} & \textbf{Rebalancing} & \textbf{Total Return (\%)} & \textbf{Sharpe Ratio} \\ \midrule
+Static Markowitz & Conventional MPT & No & Static (B\&H) & -35.2\% & 0.15 \\
+Equal Weight (EW) & Naive Diversification & No & Daily & 8.4\% & 0.28 \\
+AI-Gated Diversify & Graph (MIS - Low Edge) & Yes & Dynamic (20-day) & 29.8\% & 0.51 \\
+\textbf{AI-Gated Cluster (Ours)} & \textbf{Graph (MIS - High Edge)} & \textbf{Yes} & \textbf{Dynamic (20-day)} & \textbf{55.4\%} & \textbf{1.02} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+% --- Summary of Findings for Thesis Chapter 4 ---
+% 1. The proposed AI-Gated Cluster strategy significantly outperforms the Static Markowitz baseline by a margin of 90.6%.
+% 2. The inclusion of AI Regime-Switching (Gating) effectively mitigated a 40% drawdown during the market crash in Q1 2025.
+% 3. Graph Clustering (High Coherence) proved superior to Diversification in the highly correlated cryptocurrency market environment of 2025.
